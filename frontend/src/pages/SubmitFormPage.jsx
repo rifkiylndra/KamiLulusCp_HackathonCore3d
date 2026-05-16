@@ -4,7 +4,6 @@ import {
   Clock,
   ClipboardList,
   Camera,
-  Info,
   AlertTriangle,
   ChevronDown,
   Sparkles,
@@ -416,7 +415,7 @@ function StepMenu({ data, setData, onPhotoAnalyzed }) {
                   <div className="w-10 h-10 bg-gray-100 group-hover:bg-green-100 rounded-xl flex items-center justify-center transition-colors">
                     <Camera className="w-5 h-5 text-gray-400 group-hover:text-[#1A8A52]" />
                   </div>
-                  <p className="text-xs text-gray-400 text-center px-4 leading-relaxed">
+                  <p className="text-xs text-gray-400 text-center px-4 leading-relaxed w-full">
                     Klik untuk ambil foto atau seret gambar ke sini
                   </p>
                 </>
@@ -442,32 +441,43 @@ function StepMenu({ data, setData, onPhotoAnalyzed }) {
 
           {/* Help text */}
           {!cameraActive && !preview && (
-            <p className="text-xs text-gray-400 mt-2">
+            <p className="text-xs text-gray-400 mt-2 w-full">
               💡 Klik area foto untuk membuka kamera, atau seret file gambar ke sini
             </p>
           )}
         </div>
 
-        {/* Name + hint */}
-        <div className="flex flex-col gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-              Nama Menu Utama
-            </label>
-            <input
-              type="text"
-              placeholder="Contoh: Nasi Kuning Ayam Lengkuas"
-              value={data.namaMenu}
-              onChange={(e) => setData((p) => ({ ...p, namaMenu: e.target.value }))}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 placeholder-gray-400 outline-none focus:border-[#1A8A52] transition-colors"
-            />
-          </div>
-          <div className="flex gap-2.5 bg-blue-50 border border-blue-100 rounded-xl p-3.5">
-            <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-            <p className="text-xs text-blue-600 leading-relaxed">
-              Sistem AI akan secara otomatis mendeteksi komponen bahan baku setelah Anda mengunggah foto menu.
-            </p>
-          </div>
+        {/* Menu Name Input */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+            Nama Menu <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            placeholder="Contoh: Nasi Goreng Ayam"
+            value={data.namaMenu}
+            onChange={(e) => setData((p) => ({ ...p, namaMenu: e.target.value }))}
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 placeholder-gray-400 outline-none focus:border-[#1A8A52] transition-colors"
+          />
+          
+          {/* AI Auto-fill indicator */}
+          {analyzing && (
+            <div className="mt-2 flex items-center gap-2 text-xs text-[#1A8A52]">
+              <Sparkles className="w-3 h-3 animate-pulse" />
+              <span>AI sedang mendeteksi nama menu...</span>
+            </div>
+          )}
+          
+          {data.namaMenu && !analyzing && (
+            <div className="mt-2 flex items-center gap-2 text-xs text-green-600">
+              <CheckCircle className="w-3 h-3" />
+              <span>Nama menu terdeteksi oleh AI</span>
+            </div>
+          )}
+          
+          <p className="text-xs text-gray-400 mt-2">
+            💡 AI akan otomatis mengisi nama menu dari foto. Anda dapat mengeditnya jika perlu.
+          </p>
         </div>
       </div>
     </SectionCard>
@@ -650,10 +660,7 @@ export default function SubmitFormPage() {
         throw new Error('Anda harus login terlebih dahulu');
       }
 
-      // Validate required fields
-      if (!menuData.namaMenu.trim()) {
-        throw new Error('Nama menu harus diisi');
-      }
+      
       if (!waktuData.bahan.trim()) {
         throw new Error('Daftar bahan harus diisi');
       }

@@ -6,6 +6,10 @@ import { registerSppg } from "../services/api";
 export default function RegisterPage() {
   const navigate = useNavigate();
   const [namaSppg, setNamaSppg] = useState("");
+  const [lokasi, setLokasi] = useState("");
+  const [provinsi, setProvinsi] = useState("");
+  const [contactPerson, setContactPerson] = useState("");
+  const [noHp, setNoHp] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -21,8 +25,8 @@ export default function RegisterPage() {
     setSuccess(false);
 
     // Validation
-    if (!namaSppg || !email || !password || !confirmPassword) {
-      setError("Semua field wajib diisi.");
+    if (!namaSppg || !lokasi || !provinsi || !email || !password || !confirmPassword) {
+      setError("Field yang wajib diisi: Nama SPPG, Lokasi, Provinsi, Email, dan Password.");
       return;
     }
 
@@ -41,6 +45,10 @@ export default function RegisterPage() {
     try {
       const result = await registerSppg({
         name: namaSppg,
+        location: lokasi,
+        province: provinsi,
+        contact_person: contactPerson || null,
+        phone: noHp || null,
         email: email,
         password: password,
         password_confirmation: confirmPassword,
@@ -113,7 +121,7 @@ export default function RegisterPage() {
           {/* Nama SPPG */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-[#0D3D25]">
-              Nama SPPG
+              Nama SPPG <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -126,10 +134,72 @@ export default function RegisterPage() {
             />
           </div>
 
+          {/* Lokasi */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-[#0D3D25]">
+              Lokasi/Kota <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Jakarta Pusat"
+              value={lokasi}
+              onChange={(e) => setLokasi(e.target.value)}
+              required
+              disabled={loading || success}
+              className="w-full bg-[#F0F7F3] border border-transparent focus:border-[#1A8A52] focus:bg-white rounded-2xl px-4 py-3 text-sm text-gray-700 placeholder-gray-400 outline-none transition-all"
+            />
+          </div>
+
+          {/* Provinsi */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-[#0D3D25]">
+              Provinsi <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="DKI Jakarta"
+              value={provinsi}
+              onChange={(e) => setProvinsi(e.target.value)}
+              required
+              disabled={loading || success}
+              className="w-full bg-[#F0F7F3] border border-transparent focus:border-[#1A8A52] focus:bg-white rounded-2xl px-4 py-3 text-sm text-gray-700 placeholder-gray-400 outline-none transition-all"
+            />
+          </div>
+
+          {/* Contact Person */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-[#0D3D25]">
+              Nama Penanggung Jawab
+            </label>
+            <input
+              type="text"
+              placeholder="Nama lengkap PJ"
+              value={contactPerson}
+              onChange={(e) => setContactPerson(e.target.value)}
+              disabled={loading || success}
+              className="w-full bg-[#F0F7F3] border border-transparent focus:border-[#1A8A52] focus:bg-white rounded-2xl px-4 py-3 text-sm text-gray-700 placeholder-gray-400 outline-none transition-all"
+            />
+          </div>
+
+          {/* No HP */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-[#0D3D25]">
+              Nomor Telepon/HP
+            </label>
+            <input
+              type="tel"
+              placeholder="08123456789"
+              value={noHp}
+              onChange={(e) => setNoHp(e.target.value)}
+              disabled={loading || success}
+              className="w-full bg-[#F0F7F3] border border-transparent focus:border-[#1A8A52] focus:bg-white rounded-2xl px-4 py-3 text-sm text-gray-700 placeholder-gray-400 outline-none transition-all"
+            />
+          </div>
+
           {/* Email */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-[#0D3D25]">
-              Alamat Email
+              Alamat Email <span className="text-red-500">*</span>
             </label>
             <input
               type="email"
@@ -145,7 +215,7 @@ export default function RegisterPage() {
           {/* Password */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-[#0D3D25]">
-              Kata Sandi
+              Kata Sandi <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <input
@@ -176,7 +246,7 @@ export default function RegisterPage() {
           {/* Konfirmasi Kata Sandi */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-[#0D3D25]">
-              Konfirmasi Kata Sandi
+              Konfirmasi Kata Sandi <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <input
