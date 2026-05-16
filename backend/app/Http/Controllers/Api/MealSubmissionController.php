@@ -7,6 +7,8 @@ use App\Http\Requests\StoreMealSubmissionRequest;
 use App\Models\MealSubmission;
 use App\Jobs\ProcessMealAnalysis;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class MealSubmissionController extends Controller
 {
@@ -16,6 +18,29 @@ class MealSubmissionController extends Controller
 
         DB::beginTransaction();
         try {
+            // Handle image upload
+            $imagePath = null;
+            if ($request->hasFile('image_path')) {
+                try {
+                    $file = $request->file('image_path');
+                    $filename = 'submissions/' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    $imagePath = Storage::disk('public')->putFileAs('submissions', $file, basename($filename));
+                    
+                    Log::info('Image uploaded successfully', [
+                        'submission_id' => null,
+                        'image_path' => $imagePath,
+                        'file_size' => $file->getSize(),
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Image upload failed', [
+                        'error' => $e->getMessage(),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                    ]);
+                    throw new \Exception('Gagal upload gambar: ' . $e->getMessage());
+                }
+            }
+
             $submission = MealSubmission::create([
                 'sppg_id' => $data['sppg_id'],
                 'submitted_by' => $data['submitted_by'] ?? auth()->user()?->name ?? 'Petugas',
@@ -24,7 +49,7 @@ class MealSubmissionController extends Controller
                 'cook_start_at' => $data['cook_start_at'],
                 'serve_planned_at' => $data['serve_planned_at'],
                 'distribute_at' => $data['distribute_at'] ?? null,
-                'image_path' => $data['image_path'] ?? null,
+                'image_path' => $imagePath,
                 'status' => 'processing',
             ]);
 
@@ -42,6 +67,12 @@ class MealSubmissionController extends Controller
 
             DB::commit();
 
+            Log::info('Meal submission created', [
+                'submission_id' => $submission->id,
+                'sppg_id' => $submission->sppg_id,
+                'menu_name' => $submission->menu_name,
+            ]);
+
             ProcessMealAnalysis::dispatch($submission);
 
             return response()->json([
@@ -52,6 +83,13 @@ class MealSubmissionController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            Log::error('Meal submission creation failed', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal menyimpan: ' . $e->getMessage()

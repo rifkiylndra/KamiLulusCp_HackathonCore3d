@@ -9,7 +9,7 @@ class GeminiService
 {
     private string $apiKey;
     private string $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models';
-    private string $model = 'gemini-1.5-flash';
+    private string $model = 'gemini-2.5-flash';
 
     public function __construct()
     {
@@ -55,6 +55,11 @@ class GeminiService
     private function callGemini(string $prompt): string
     {
         try {
+            Log::channel('gemini')->info('Calling Gemini API for nutrition analysis', [
+                'model' => $this->model,
+                'prompt_length' => strlen($prompt),
+            ]);
+
             $response = Http::timeout(30)
                 ->post("{$this->baseUrl}/{$this->model}:generateContent", [
                     'contents' => [
@@ -77,7 +82,7 @@ class GeminiService
                 ]);
 
             if ($response->failed()) {
-                Log::error('Gemini API error', [
+                Log::channel('gemini')->error('Gemini API error', [
                     'status' => $response->status(),
                     'body' => $response->body(),
                 ]);
@@ -90,8 +95,17 @@ class GeminiService
 
             $data = $response->json();
 
+            Log::channel('gemini')->info('Gemini API response received', [
+                'status' => $response->status(),
+                'has_candidates' => isset($data['candidates']),
+            ]);
+
             if (isset($data['candidates'][0]['content']['parts'][0]['text'])) {
-                return $data['candidates'][0]['content']['parts'][0]['text'];
+                $result = $data['candidates'][0]['content']['parts'][0]['text'];
+                Log::channel('gemini')->info('Gemini nutrition analysis completed', [
+                    'response_length' => strlen($result),
+                ]);
+                return $result;
             }
 
             return json_encode([
@@ -99,7 +113,7 @@ class GeminiService
                 'data' => $data,
             ]);
         } catch (\Exception $e) {
-            Log::error('Gemini API exception', [
+            Log::channel('gemini')->error('Gemini API exception', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -117,6 +131,11 @@ class GeminiService
     private function callGeminiWithImage(string $imageData, string $prompt): string
     {
         try {
+            Log::channel('gemini')->info('Calling Gemini API for image analysis', [
+                'model' => $this->model,
+                'image_data_length' => strlen($imageData),
+            ]);
+
             $response = Http::timeout(30)
                 ->post("{$this->baseUrl}/{$this->model}:generateContent", [
                     'contents' => [
@@ -145,7 +164,7 @@ class GeminiService
                 ]);
 
             if ($response->failed()) {
-                Log::error('Gemini image API error', [
+                Log::channel('gemini')->error('Gemini image API error', [
                     'status' => $response->status(),
                     'body' => $response->body(),
                 ]);
@@ -158,8 +177,17 @@ class GeminiService
 
             $data = $response->json();
 
+            Log::channel('gemini')->info('Gemini image API response received', [
+                'status' => $response->status(),
+                'has_candidates' => isset($data['candidates']),
+            ]);
+
             if (isset($data['candidates'][0]['content']['parts'][0]['text'])) {
-                return $data['candidates'][0]['content']['parts'][0]['text'];
+                $result = $data['candidates'][0]['content']['parts'][0]['text'];
+                Log::channel('gemini')->info('Gemini image analysis completed', [
+                    'response_length' => strlen($result),
+                ]);
+                return $result;
             }
 
             return json_encode([
@@ -167,7 +195,7 @@ class GeminiService
                 'data' => $data,
             ]);
         } catch (\Exception $e) {
-            Log::error('Gemini image API exception', [
+            Log::channel('gemini')->error('Gemini image API exception', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
