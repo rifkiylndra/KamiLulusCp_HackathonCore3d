@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Backend Connection</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        button { margin: 10px; padding: 10px 20px; }
+        #result { margin-top: 20px; padding: 10px; border: 1px solid #ccc; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+    </style>
+</head>
+<body>
+    <h1>Test Backend Connection</h1>
+    
+    <button onclick="testGet()">Test GET /api/test-cors</button>
+    <button onclick="testPost()">Test POST /api/test-cors-post</button>
+    <button onclick="testSppg()">Test GET /api/sppg</button>
+    <button onclick="testSubmissions()">Test POST /api/submissions</button>
+    
+    <div id="result"></div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+        
+        async function testGet() {
+            const result = document.getElementById('result');
+            result.innerHTML = 'Testing GET...';
+            
+            try {
+                const response = await fetch(`${API_URL}/api/test-cors`);
+                const data = await response.json();
+                result.className = 'success';
+                result.innerHTML = `<pre>Success!\n${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                result.className = 'error';
+                result.innerHTML = `<pre>Error: ${error.message}</pre>`;
+            }
+        }
+        
+        async function testPost() {
+            const result = document.getElementById('result');
+            result.innerHTML = 'Testing POST...';
+            
+            try {
+                const response = await fetch(`${API_URL}/api/test-cors-post`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ test: 'data' }),
+                });
+                const data = await response.json();
+                result.className = 'success';
+                result.innerHTML = `<pre>Success!\n${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                result.className = 'error';
+                result.innerHTML = `<pre>Error: ${error.message}</pre>`;
+            }
+        }
+        
+        async function testSppg() {
+            const result = document.getElementById('result');
+            result.innerHTML = 'Testing SPPG...';
+            
+            try {
+                const response = await fetch(`${API_URL}/api/sppg`);
+                const data = await response.json();
+                result.className = 'success';
+                result.innerHTML = `<pre>Success!\n${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                result.className = 'error';
+                result.innerHTML = `<pre>Error: ${error.message}</pre>`;
+            }
+        }
+        
+        async function testSubmissions() {
+            const result = document.getElementById('result');
+            result.innerHTML = 'Testing Submissions...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('sppg_id', '4'); // Use existing SPPG ID
+                formData.append('menu_name', 'Test Menu');
+                formData.append('portion_count', '10');
+                formData.append('cook_start_at', '2026-05-16T10:00:00');
+                formData.append('serve_planned_at', '2026-05-16T12:00:00');
+                formData.append('ingredients[0][ingredient_name]', 'Test Ingredient');
+                formData.append('ingredients[0][quantity_gram]', '100');
+                formData.append('ingredients[0][category]', 'protein');
+                formData.append('sanitation[apd_used]', '1');
+                formData.append('sanitation[kitchen_cleaned]', '1');
+                formData.append('sanitation[storage_type]', 'kulkas');
+                formData.append('sanitation[ingredient_condition]', 'baik');
+                formData.append('sanitation[supplier_source]', 'resmi');
+                
+                const response = await fetch(`${API_URL}/api/submissions`, {
+                    method: 'POST',
+                    body: formData,
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+                console.log('Response content-type:', response.headers.get('content-type'));
+                
+                const text = await response.text();
+                console.log('Response text:', text.substring(0, 500));
+                
+                try {
+                    const data = JSON.parse(text);
+                    result.className = 'success';
+                    result.innerHTML = `<pre>Success!\n${JSON.stringify(data, null, 2)}</pre>`;
+                } catch (e) {
+                    result.className = 'error';
+                    result.innerHTML = `<pre>Response is not JSON:\n${text.substring(0, 1000)}</pre>`;
+                }
+            } catch (error) {
+                result.className = 'error';
+                result.innerHTML = `<pre>Error: ${error.message}\nCheck console for details</pre>`;
+                console.error('Full error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

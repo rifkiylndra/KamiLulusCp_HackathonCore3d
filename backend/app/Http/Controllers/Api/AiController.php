@@ -46,7 +46,7 @@ class AiController extends Controller
                 ],
                 'generationConfig' => [
                     'temperature' => 0.1, // [cite: 101]
-                    'maxOutputTokens' => 2048, // [cite: 102]
+                    'maxOutputTokens' => 4098, // [cite: 102]
                     'responseMimeType' => 'application/json' // [cite: 100]
                 ]
             ]);

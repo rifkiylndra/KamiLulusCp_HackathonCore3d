@@ -9,10 +9,14 @@ class GeminiJsonParser
 {
     public static function parse(string $txt): array
     {
+        // Remove markdown code blocks
         $raw = trim(preg_replace('/```json|```/', '', $txt));
         if ($raw === '') {
             return [];
         }
+
+        // Clean control characters that might break JSON parsing
+        $raw = self::cleanControlCharacters($raw);
 
         try {
             return json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
@@ -28,6 +32,61 @@ class GeminiJsonParser
             }
             throw $e;
         }
+    }
+
+    /**
+     * Clean control characters from JSON string that might break parsing
+     */
+    private static function cleanControlCharacters(string $raw): string
+    {
+        // First, try to clean the entire string of problematic characters
+        $cleaned = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $raw);
+        
+        // Replace unescaped newlines and tabs in JSON strings
+        $result = '';
+        $inString = false;
+        $escaped = false;
+        $length = strlen($cleaned);
+        
+        for ($i = 0; $i < $length; $i++) {
+            $ch = $cleaned[$i];
+            
+            if ($escaped) {
+                $result .= $ch;
+                $escaped = false;
+                continue;
+            }
+            
+            if ($ch === '\\') {
+                $result .= $ch;
+                $escaped = true;
+                continue;
+            }
+            
+            if ($ch === '"') {
+                $result .= $ch;
+                $inString = !$inString;
+                continue;
+            }
+            
+            // If we're inside a string, escape problematic characters
+            if ($inString) {
+                if ($ch === "\n") {
+                    $result .= "\\n";
+                    continue;
+                } elseif ($ch === "\r") {
+                    $result .= "\\r";
+                    continue;
+                } elseif ($ch === "\t") {
+                    $result .= "\\t";
+                    continue;
+                }
+            }
+            
+            $result .= $ch;
+        }
+        
+        return $result;
     }
 
     private static function fixUnterminatedString(string $raw): string

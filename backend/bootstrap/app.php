@@ -12,8 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Add CORS middleware
-        $middleware->api(append: [
+        // Force JSON response for API routes
+        $middleware->api(prepend: [
+            \App\Http\Middleware\ForceJsonResponse::class,
             \Illuminate\Http\Middleware\HandleCors::class,
         ]);
     })

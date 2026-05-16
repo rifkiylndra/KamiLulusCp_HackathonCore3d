@@ -10,6 +10,23 @@ use App\Http\Controllers\Api\VisionController;
 // Vision (analisis foto — doVision app.js)
 Route::post('/vision/analyze-photo', [VisionController::class, 'analyzePhoto']);
 
+// Test CORS endpoint
+Route::get('/test-cors', function () {
+    return response()->json([
+        'success' => true,
+        'message' => 'CORS is working!',
+        'timestamp' => now()->toDateTimeString(),
+    ]);
+});
+
+Route::post('/test-cors-post', function () {
+    return response()->json([
+        'success' => true,
+        'message' => 'CORS POST is working!',
+        'data' => request()->all(),
+    ]);
+});
+
 // SPPG
 Route::apiResource('sppg', SppgController::class);
 

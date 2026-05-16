@@ -93,9 +93,7 @@ Balas HANYA dengan JSON berikut, tanpa teks lain:
     "nutrition_notes": "string max 80 kata Bahasa Indonesia"
   },
   "food_safety_analysis": {
-    "cook_to_serve_hours": 0,
     "serve_to_distribute_hours": 0,
-    "total_exposure_hours": 0,
     "temperature_risk_level": "LOW|MEDIUM|HIGH|CRITICAL",
     "safety_notes": "string max 80 kata Bahasa Indonesia"
   }
@@ -117,7 +115,7 @@ PROMPT;
         $tS = $submission->serve_planned_at?->format('H:i') ?? '-';
         $tD = $submission->distribute_at?->format('H:i') ?? '-';
 
-        $jedaMenit = self::jedaMenitMasakDistribusi($submission);
+        $jedaMenit = self::jedaMenitSajiDistribusi($submission);
         $jedaJam = number_format($jedaMenit / 60, 1, '.', '');
 
         $san = $submission->sanitationCheck;
@@ -137,20 +135,38 @@ DATA:
 - Bahan per porsi: {$bahan}
 - Porsi: {$submission->portion_count} | Sasaran: umum
 - Waktu masak: {$tM} | Sajian: {$tS} | Distribusi: {$tD}
-- Jeda total masak→distribusi: {$jedaJam} jam ({$jedaMenit} menit)
+- Jeda SAJI→DISTRIBUSI: {$jedaJam} jam ({$jedaMenit} menit)
 - Penyimpanan: {$simpan} | Kondisi bahan: {$kondisi} | Sumber: {$sumber}
 - Checklist sanitasi: {$checklistDone}/{$checkTotal} ({$sanitationPercent}%)
 
 ATURAN WAJIB:
-- Jika jeda masak→distribusi > 4 jam (240 menit): status = BAHAYA, skor_keamanan ≤ 30
+- Jika jeda saji→distribusi > 4 jam (240 menit): status = BAHAYA, skor_keamanan ≤ 30
 - Skor total = (skor_gizi×0.4) + (skor_keamanan×0.4) + (skor_sanitasi×0.2)
 - skor_sanitasi = {$sanitationPercent}
 - Status: AMAN jika skor≥75, PERHATIAN jika 50-74, BAHAYA jika <50 atau jeda>4jam
 - Kondisi bahan rusak/mencurigakan → skor_keamanan dikurangi signifikan
 
+VIOLATIONS - Harus spesifik dan actionable:
+- severity: CRITICAL (jeda saji>4jam, bahan rusak), HIGH (protein<9g, sanitasi<50%), MEDIUM (protein<12g, jeda saji>3jam), LOW (minor issues)
+- pesan: Deskripsi lengkap masalah dengan angka spesifik (contoh: "Jeda saji ke distribusi {$jedaJam} jam melebihi batas aman 4 jam")
+- dimension: gizi|keamanan|sanitasi
+
 Berikan analisis realistis sesuai standar gizi Indonesia (AKG).
-Jawab hanya dengan JSON valid, tanpa markdown, tanpa teks tambahan:
-{"skor_total":0,"skor_gizi":0,"skor_keamanan":0,"skor_sanitasi":{$sanitationPercent},"status":"AMAN|PERHATIAN|BAHAYA","violations":[{"severity":"HIGH|MEDIUM|LOW|CRITICAL","pesan":"...","dimension":"gizi|keamanan|sanitasi"}],"feedback_segera":["..."],"feedback_besok":["..."],"catatan_rutin":["..."],"ringkasan_gizi":"..."}
+
+PENTING - FORMAT REKOMENDASI:
+1. feedback_segera: Tindakan kritis yang harus dilakukan SEGERA (contoh: "Percepat distribusi. Sisa waktu aman: 30 menit. Uka melewati batas, masak ulang atau buang untuk mencegah keracunan pangan.")
+2. feedback_besok: Optimalisasi untuk esok hari (contoh: "Tambahkan 1 butir telur rebus per porsi (+6g protein) ATAU ganti tahu dengan tempe di menu yang sama untuk memenuhi target protein nasional.")
+3. catatan_rutin: Pemeliharaan preventif (contoh: "Pastikan bahan protein disimpan di kulkas maks 4 derajat C sejak diterima dari supplier. Log suhu harian menunjukkan fluktuasi di pagi hari.")
+
+Setiap feedback harus:
+- Spesifik dan actionable (bukan umum)
+- Menyebutkan angka/target jika relevan
+- Memberikan alternatif solusi jika memungkinkan
+- Menggunakan bahasa Indonesia yang jelas
+- PENTING: Setiap item feedback adalah STRING TUNGGAL tanpa line break
+
+Jawab hanya dengan JSON valid, tanpa markdown, tanpa teks tambahan. Pastikan tidak ada line break di dalam string:
+{"skor_total":0,"skor_gizi":0,"skor_keamanan":0,"skor_sanitasi":{$sanitationPercent},"status":"AMAN|PERHATIAN|BAHAYA","violations":[{"severity":"HIGH|MEDIUM|LOW|CRITICAL","pesan":"Deskripsi lengkap tanpa line break","dimension":"gizi|keamanan|sanitasi"}],"feedback_segera":["Tindakan kritis spesifik dengan angka dan deadline dalam satu baris"],"feedback_besok":["Rekomendasi perbaikan konkret dengan alternatif solusi dalam satu baris"],"catatan_rutin":["Pemeliharaan preventif dengan detail teknis dalam satu baris"],"ringkasan_gizi":"Ringkasan singkat tanpa line break"}
 PROMPT;
     }
 
@@ -175,25 +191,33 @@ PROMPT;
         return (int) round(($done / count(self::SANITATION_CHECKS)) * 100);
     }
 
-    public static function jedaMenitMasakDistribusi(MealSubmission $submission): int
+    public static function jedaMenitSajiDistribusi(MealSubmission $submission): int
     {
-        if (! $submission->cook_start_at) {
+        if (! $submission->serve_planned_at) {
             return 0;
         }
 
-        $end = $submission->distribute_at ?? $submission->serve_planned_at;
+        $end = $submission->distribute_at;
         if (! $end) {
             return 0;
         }
 
-        $startMin = $submission->cook_start_at->hour * 60 + $submission->cook_start_at->minute;
+        $startMin = $submission->serve_planned_at->hour * 60 + $submission->serve_planned_at->minute;
         $endMin = $end->hour * 60 + $end->minute;
         $diff = $endMin - $startMin;
 
         if ($diff < 0) {
-            $diff += 1440;
+            $diff += 1440; // Handle next day
         }
 
         return $diff;
+    }
+
+    /**
+     * @deprecated Use jedaMenitSajiDistribusi instead
+     */
+    public static function jedaMenitMasakDistribusi(MealSubmission $submission): int
+    {
+        return self::jedaMenitSajiDistribusi($submission);
     }
 }

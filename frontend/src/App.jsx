@@ -19,7 +19,7 @@ function App() {
       <Route path="/home" element={<KitchenHomePage />} />
       <Route path="/riwayat" element={<RiwayatPage />} />
       <Route path="/submit" element={<SubmitFormPage />} />
-      <Route path="/result" element={<ResultPage />} />
+      <Route path="/result/:id" element={<ResultPage />} />
     </Routes>
   );
 }

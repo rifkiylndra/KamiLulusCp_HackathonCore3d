@@ -27,9 +27,7 @@ class GeminiResponseParser
                 'ingredient_variety_count' => (int) ($nutrition['ingredient_variety_count'] ?? 0),
                 'meets_minimum_standard' => (bool) ($nutrition['meets_minimum_standard'] ?? false),
                 'nutrition_notes' => (string) ($nutrition['nutrition_notes'] ?? ''),
-                'cook_to_serve_hours' => self::clampFloat($safety['cook_to_serve_hours'] ?? 0, 0, 24),
                 'serve_to_distribute_hours' => self::clampFloat($safety['serve_to_distribute_hours'] ?? 0, 0, 24),
-                'total_exposure_hours' => self::clampFloat($safety['total_exposure_hours'] ?? 0, 0, 24),
                 'temperature_risk_level' => (string) ($safety['temperature_risk_level'] ?? 'MEDIUM'),
                 'safety_notes' => (string) ($safety['safety_notes'] ?? ''),
                 'raw_response' => $response,
@@ -205,7 +203,8 @@ class GeminiResponseParser
     private static function estimateSafetyScore(array $parsed): int
     {
         $score = 100;
-        $hours = $parsed['total_exposure_hours'] ?: ($parsed['cook_to_serve_hours'] + $parsed['serve_to_distribute_hours']);
+        $hours = $parsed['serve_to_distribute_hours'] ?? 0;
+        
         if ($hours > 4) {
             $score -= 50;
         } elseif ($hours > 3) {

@@ -11,6 +11,9 @@ export const API_ENDPOINTS = {
   SUBMISSIONS_DETAIL: (id) => `${API_BASE_URL}/api/submissions/${id}`,
   SUBMISSIONS_STATUS: (id) => `${API_BASE_URL}/api/submissions/${id}/status`,
   
+  // Vision Analysis
+  VISION_ANALYZE: `${API_BASE_URL}/api/vision/analyze-photo`,
+  
   // Dashboard
   DASHBOARD_STATS: `${API_BASE_URL}/api/dashboard/stats`,
   DASHBOARD_RECENT: `${API_BASE_URL}/api/dashboard/recent-sppg`,
@@ -33,6 +36,9 @@ export const submitMeal = async (formData) => {
   try {
     const response = await fetch(API_ENDPOINTS.SUBMISSIONS_CREATE, {
       method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+      },
       body: formData,
     });
     
@@ -102,6 +108,37 @@ export const pollSubmissionStatus = async (id, maxAttempts = 30) => {
       }
     }, 2000); // Poll every 2 seconds
   });
+};
+
+// Analyze photo for ingredients
+export const analyzePhotoForIngredients = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    const response = await fetch(API_ENDPOINTS.VISION_ANALYZE, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+      },
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `HTTP ${response.status}`);
+    }
+    
+    const data = await response.json();
+    if (data.success) {
+      return data.data;
+    } else {
+      throw new Error(data.message || 'Failed to analyze photo');
+    }
+  } catch (error) {
+    console.error('Error analyzing photo:', error);
+    throw error;
+  }
 };
 
 export default API_BASE_URL;

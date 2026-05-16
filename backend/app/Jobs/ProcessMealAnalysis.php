@@ -108,13 +108,16 @@ class ProcessMealAnalysis implements ShouldQueue
                     $feedback[$key] = array_values(array_unique(array_merge($feedback[$key] ?? [], $aiItems)));
                 }
             }
+        } else {
+            // Generate intelligent fallback recommendations based on actual data
+            $feedback = $this->generateIntelligentFeedback($this->submission, $engineResult);
         }
 
         $finalScore = (int) round(
             ($nutrition * 0.4) + ($safety * 0.4) + ($sanitation * 0.2)
         );
 
-        $jedaMenit = NutriGuardPrompts::jedaMenitMasakDistribusi($this->submission);
+        $jedaMenit = NutriGuardPrompts::jedaMenitSajiDistribusi($this->submission);
         if ($jedaMenit > 240) {
             $finalScore = min($finalScore, 49);
             $status = 'BAHAYA';
@@ -143,6 +146,7 @@ class ProcessMealAnalysis implements ShouldQueue
                 'gemini_nutrition' => $geminiNutrition,
                 'gemini_assessment' => $aiAssessment,
                 'scoring_engine' => $engineResult->toArray(),
+                'fallback_used' => is_null($aiAssessment),
             ]),
             'processing_time_ms' => 0,
         ];
@@ -221,5 +225,75 @@ class ProcessMealAnalysis implements ShouldQueue
         }
 
         return null;
+    }
+
+    /**
+     * Generate intelligent feedback based on actual submission data when Gemini fails
+     */
+    private function generateIntelligentFeedback(MealSubmission $submission, $engineResult): array
+    {
+        $feedback = [
+            'immediate_actions' => [],
+            'tomorrow_improvements' => [],
+            'routine_notes' => [],
+        ];
+
+        // Analyze time gaps
+        $jedaMenit = NutriGuardPrompts::jedaMenitSajiDistribusi($submission);
+        $jedaJam = round($jedaMenit / 60, 1);
+
+        // Immediate actions based on critical issues
+        if ($jedaMenit > 240) {
+            $feedback['immediate_actions'][] = "HENTIKAN DISTRIBUSI SEGERA - Jeda saji ke distribusi {$jedaJam} jam melebihi batas aman 4 jam. Risiko kontaminasi bakteri sangat tinggi.";
+        } elseif ($jedaMenit > 180) {
+            $feedback['immediate_actions'][] = "Percepat distribusi dalam 1 jam ke depan. Sisa waktu aman: " . (240 - $jedaMenit) . " menit sebelum melewati batas keamanan.";
+        }
+
+        // Check sanitation issues
+        $san = $submission->sanitationCheck;
+        if ($san && !$san->apd_used) {
+            $feedback['immediate_actions'][] = "Pastikan semua petugas menggunakan APD lengkap (masker, sarung tangan, hairnet) sebelum melanjutkan distribusi.";
+        }
+
+        if ($san && $san->ingredient_condition === 'rusak') {
+            $feedback['immediate_actions'][] = "Bahan dalam kondisi rusak terdeteksi. Hentikan penggunaan dan ganti dengan bahan segar dari supplier.";
+        }
+
+        // Tomorrow improvements based on nutrition score
+        $nutritionScore = $engineResult->nutritionScore;
+        if ($nutritionScore < 70) {
+            $feedback['tomorrow_improvements'][] = "Tingkatkan kandungan protein dengan menambah 1 butir telur rebus per porsi (+6g protein) atau ganti tahu dengan tempe (protein lebih tinggi).";
+            $feedback['tomorrow_improvements'][] = "Tambahkan sayuran hijau seperti kangkung atau bayam (100g per porsi) untuk memenuhi kebutuhan serat dan vitamin.";
+        }
+
+        // Check portion adequacy
+        $portionCount = $submission->portion_count;
+        if ($portionCount > 100) {
+            $feedback['tomorrow_improvements'][] = "Untuk porsi besar ({$portionCount} porsi), pertimbangkan memasak dalam 2 batch terpisah untuk menjaga kualitas dan mengurangi jeda waktu.";
+        }
+
+        // Routine notes based on storage and supplier
+        if ($san) {
+            if ($san->storage_type === 'suhu_ruang') {
+                $feedback['routine_notes'][] = "Pindahkan penyimpanan bahan protein ke kulkas (2-4°C) untuk menjaga kesegaran dan mencegah pertumbuhan bakteri.";
+            }
+
+            if ($san->supplier_source === 'pasar') {
+                $feedback['routine_notes'][] = "Verifikasi sertifikat keamanan pangan dari supplier pasar lokal setiap minggu. Dokumentasikan suhu bahan saat diterima.";
+            }
+        }
+
+        $feedback['routine_notes'][] = "Lakukan pencatatan suhu harian untuk monitoring fluktuasi yang dapat mempengaruhi kualitas bahan makanan.";
+
+        // Ensure each category has at least one item
+        if (empty($feedback['immediate_actions'])) {
+            $feedback['immediate_actions'][] = "Lanjutkan distribusi dengan memantau suhu makanan tetap di atas 60°C untuk mencegah pertumbuhan bakteri.";
+        }
+
+        if (empty($feedback['tomorrow_improvements'])) {
+            $feedback['tomorrow_improvements'][] = "Pertahankan kualitas menu saat ini. Evaluasi variasi bahan untuk meningkatkan nilai gizi secara bertahap.";
+        }
+
+        return $feedback;
     }
 }

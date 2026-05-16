@@ -14,7 +14,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import NavbarLogin from "../components/layout/NavbarLogin";
 import Footer from "../components/layout/Footer";
-import { submitMeal, pollSubmissionStatus } from "../services/api";
+import { submitMeal, pollSubmissionStatus, analyzePhotoForIngredients } from "../services/api";
 
 // ── Step Indicator ────────────────────────────────────────────────────────────
 function StepIndicator({ current }) {
@@ -131,15 +131,176 @@ function SectionCard({ icon, title, badge, children }) {
 }
 
 // ── STEP 1 — Identifikasi Menu ────────────────────────────────────────────────
-function StepMenu({ data, setData }) {
-  const inputRef = useRef();
+function StepMenu({ data, setData, onPhotoAnalyzed }) {
+  const fileInputRef = useRef();
+  const videoRef = useRef();
+  const canvasRef = useRef();
+  const streamRef = useRef(null);
   const [preview, setPreview] = useState(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState("");
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState("");
 
-  const handleFile = (file) => {
+  const handleFile = async (file) => {
     if (!file) return;
+    
+    // Show preview immediately
     const url = URL.createObjectURL(file);
     setPreview(url);
     setData((p) => ({ ...p, foto: file }));
+    stopCamera();
+    
+    // Auto-analyze photo for ingredients
+    setAnalyzing(true);
+    setAnalysisError("");
+    
+    try {
+      console.log('Starting photo analysis...');
+      const analysisResult = await analyzePhotoForIngredients(file);
+      console.log('Analysis result:', analysisResult);
+      
+      // Auto-fill menu name if detected
+      if (analysisResult.nama_menu) {
+        console.log('Setting menu name:', analysisResult.nama_menu);
+        setData((p) => ({ ...p, namaMenu: analysisResult.nama_menu }));
+      }
+      
+      // Pass analysis result to parent component
+      if (onPhotoAnalyzed) {
+        console.log('Calling onPhotoAnalyzed with:', analysisResult);
+        onPhotoAnalyzed(analysisResult);
+      }
+      
+      setAnalyzing(false);
+    } catch (error) {
+      console.error('Photo analysis failed:', error);
+      setAnalysisError(`Analisis gagal: ${error.message}`);
+      setAnalyzing(false);
+    }
+  };
+
+  const startCamera = async () => {
+    setCameraError("");
+    try {
+      // Request camera access
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false,
+      });
+
+      // Store stream reference
+      streamRef.current = stream;
+
+      // Set camera active first to render video element
+      setCameraActive(true);
+
+      // Set video source after state update
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          
+          // Play video with proper error handling
+          const playPromise = videoRef.current.play();
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                console.log('Video playing successfully');
+              })
+              .catch(err => {
+                console.error('Play error:', err);
+                setCameraError('Tidak bisa memutar video kamera');
+              });
+          }
+        }
+      }, 0);
+    } catch (error) {
+      console.error('Camera error:', error);
+      let errorMsg = 'Tidak bisa mengakses kamera';
+      
+      if (error.name === 'NotAllowedError') {
+        errorMsg = 'Izin kamera ditolak. Silakan izinkan akses kamera di browser settings.';
+      } else if (error.name === 'NotFoundError') {
+        errorMsg = 'Kamera tidak ditemukan di device ini.';
+      } else if (error.name === 'NotReadableError') {
+        errorMsg = 'Kamera sedang digunakan oleh aplikasi lain.';
+      }
+      
+      setCameraError(errorMsg);
+      setCameraActive(false);
+    }
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      try {
+        const context = canvasRef.current.getContext('2d');
+        const video = videoRef.current;
+        
+        // Calculate 16:9 dimensions based on video width
+        const targetWidth = video.videoWidth;
+        const targetHeight = Math.round(targetWidth * 9 / 16);
+        
+        // Set canvas to 16:9 aspect ratio
+        canvasRef.current.width = targetWidth;
+        canvasRef.current.height = targetHeight;
+        
+        // Calculate crop to center the video in 16:9 frame
+        const sourceHeight = video.videoHeight;
+        const sourceWidth = video.videoWidth;
+        
+        // If video is taller than 16:9, crop top and bottom
+        // If video is wider than 16:9, crop left and right
+        let sx = 0, sy = 0, sw = sourceWidth, sh = sourceHeight;
+        
+        const videoAspect = sourceWidth / sourceHeight;
+        const targetAspect = 16 / 9;
+        
+        if (videoAspect > targetAspect) {
+          // Video is wider, crop sides
+          sw = Math.round(sourceHeight * targetAspect);
+          sx = (sourceWidth - sw) / 2;
+        } else {
+          // Video is taller, crop top/bottom
+          sh = Math.round(sourceWidth / targetAspect);
+          sy = (sourceHeight - sh) / 2;
+        }
+        
+        // Draw video frame to canvas with 16:9 crop
+        context.drawImage(video, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
+        
+        // Convert canvas to blob
+        canvasRef.current.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], 'camera-photo.jpg', { type: 'image/jpeg' });
+            handleFile(file);
+          }
+        }, 'image/jpeg', 0.95);
+      } catch (error) {
+        console.error('Capture error:', error);
+        setCameraError('Gagal mengambil foto');
+      }
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => {
+        track.stop();
+      });
+      streamRef.current = null;
+    }
+    
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    
+    setCameraActive(false);
+    setCameraError("");
   };
 
   return (
@@ -154,35 +315,138 @@ function StepMenu({ data, setData }) {
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
             Foto Menu Masakan
           </label>
-          <div
-            onClick={() => inputRef.current?.click()}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              handleFile(e.dataTransfer.files[0]);
-            }}
-            className="border-2 border-dashed border-gray-200 hover:border-[#1A8A52] rounded-2xl h-40 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors group bg-gray-50 hover:bg-green-50/30 overflow-hidden"
-          >
-            {preview ? (
-              <img src={preview} alt="preview" className="w-full h-full object-cover rounded-2xl" />
-            ) : (
-              <>
-                <div className="w-10 h-10 bg-gray-100 group-hover:bg-green-100 rounded-xl flex items-center justify-center transition-colors">
-                  <Camera className="w-5 h-5 text-gray-400 group-hover:text-[#1A8A52]" />
+          
+          {cameraActive ? (
+            // Camera view - 16:9 aspect ratio
+            <div className="border-2 border-solid border-gray-300 rounded-2xl overflow-hidden bg-black relative flex flex-col w-full" style={{ aspectRatio: '16/9' }}>
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                width="100%"
+                height="100%"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block'
+                }}
+                className="w-full h-full object-cover"
+              />
+              <canvas ref={canvasRef} className="hidden" />
+              
+              {/* Camera error message */}
+              {cameraError && (
+                <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+                  <div className="text-center px-4">
+                    <p className="text-red-400 text-sm font-semibold">{cameraError}</p>
+                    <button
+                      type="button"
+                      onClick={stopCamera}
+                      className="mt-3 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+                    >
+                      Tutup
+                    </button>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-400 text-center px-4 leading-relaxed">
-                  Ambil foto atau seret gambar ke sini
-                </p>
-              </>
-            )}
-          </div>
+              )}
+              
+              {/* Controls */}
+              {!cameraError && (
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-3 py-3 flex gap-2 justify-center">
+                  <button
+                    type="button"
+                    onClick={capturePhoto}
+                    className="bg-[#1A8A52] hover:bg-[#0D5C3A] text-white px-6 py-2 rounded-lg font-semibold text-sm transition-colors flex items-center gap-2"
+                  >
+                    <Camera className="w-4 h-4" />
+                    Ambil Foto
+                  </button>
+                  <button
+                    type="button"
+                    onClick={stopCamera}
+                    className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg font-semibold text-sm transition-colors"
+                  >
+                    Batal
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            // Upload zone - 16:9 aspect ratio
+            <div
+              onClick={() => {
+                if (!preview && !analyzing) {
+                  startCamera();
+                }
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (!analyzing) {
+                  handleFile(e.dataTransfer.files[0]);
+                }
+              }}
+              className="border-2 border-dashed border-gray-200 hover:border-[#1A8A52] rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors group bg-gray-50 hover:bg-green-50/30 overflow-hidden relative w-full"
+              style={{ aspectRatio: '16/9' }}
+            >
+              {analyzing ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-8 h-8 border-3 border-[#1A8A52]/20 border-t-[#1A8A52] rounded-full animate-spin" />
+                  <p className="text-xs text-gray-500 font-semibold">Menganalisis foto...</p>
+                </div>
+              ) : preview ? (
+                <>
+                  <img src={preview} alt="preview" className="w-full h-full object-cover rounded-2xl" />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreview(null);
+                      setAnalysisError("");
+                      setData((p) => ({ ...p, foto: null }));
+                    }}
+                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-xs font-semibold transition-colors"
+                  >
+                    Hapus
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="w-10 h-10 bg-gray-100 group-hover:bg-green-100 rounded-xl flex items-center justify-center transition-colors">
+                    <Camera className="w-5 h-5 text-gray-400 group-hover:text-[#1A8A52]" />
+                  </div>
+                  <p className="text-xs text-gray-400 text-center px-4 leading-relaxed">
+                    Klik untuk ambil foto atau seret gambar ke sini
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Analysis error message */}
+          {analysisError && (
+            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-xs text-red-600">{analysisError}</p>
+            </div>
+          )}
+
+          {/* File input - fallback for file selection */}
           <input
-            ref={inputRef}
+            ref={fileInputRef}
             type="file"
             accept="image/*"
             className="hidden"
             onChange={(e) => handleFile(e.target.files[0])}
           />
+
+          {/* Help text */}
+          {!cameraActive && !preview && (
+            <p className="text-xs text-gray-400 mt-2">
+              💡 Klik area foto untuk membuka kamera, atau seret file gambar ke sini
+            </p>
+          )}
         </div>
 
         {/* Name + hint */}
@@ -254,11 +518,11 @@ function StepWaktu({ data, setData }) {
           ))}
         </div>
 
-        {/* Warning */}
+        {/* Warning - Updated to focus only on serve to distribute */}
         <div className="flex items-start gap-2.5 bg-red-50 border border-red-100 rounded-xl p-4">
           <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
           <p className="text-xs text-red-600 font-medium leading-relaxed">
-            Peringatan: Jeda masak ke sajian maksimal 4 jam untuk menjaga kualitas nutrisi dan higienitas.
+            Peringatan: Jeda sajian ke distribusi maksimal 4 jam untuk menjaga kualitas nutrisi dan higienitas.
           </p>
         </div>
       </div>
@@ -359,6 +623,16 @@ export default function SubmitFormPage() {
     sumberBahan: "Supplier Resmi MBG",
   });
 
+  const handlePhotoAnalyzed = (analysisResult) => {
+    // Auto-fill ingredients from photo analysis
+    if (analysisResult.bahan && analysisResult.bahan.length > 0) {
+      const bahanText = analysisResult.bahan
+        .map(b => `${b.nama} (${b.gram}g)`)
+        .join('\n');
+      setWaktuData((p) => ({ ...p, bahan: bahanText }));
+    }
+  };
+
   const handleNext = () => {
     if (step < 3) setStep((s) => s + 1);
   };
@@ -391,8 +665,8 @@ export default function SubmitFormPage() {
       // Create FormData object with all form fields in backend format
       const formData = new FormData();
       
-      // Required fields
-      formData.append('sppg_id', '1'); // Default to first SPPG, can be changed later
+      // Required fields - Use first available SPPG ID (4)
+      formData.append('sppg_id', '4'); // SPPG Hub 01 - Jakarta Pusat
       formData.append('menu_name', menuData.namaMenu);
       formData.append('portion_count', waktuData.porsi);
       
@@ -514,6 +788,7 @@ export default function SubmitFormPage() {
               <StepMenu
                 data={menuData}
                 setData={setMenuData}
+                onPhotoAnalyzed={handlePhotoAnalyzed}
               />
             )}
 

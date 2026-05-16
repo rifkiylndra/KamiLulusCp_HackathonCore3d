@@ -8,10 +8,40 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleLogin = (e) => {
     e.preventDefault();
+    setError("");
+
+    // Validation
+    if (!email.trim()) {
+      setError("Email harus diisi");
+      return;
+    }
+
+    if (!password.trim()) {
+      setError("Kata sandi harus diisi");
+      return;
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Format email tidak valid");
+      return;
+    }
+
+    // Password minimum length
+    if (password.length < 6) {
+      setError("Kata sandi minimal 6 karakter");
+      return;
+    }
+
     setLoading(true);
+    
+    // TODO: Call actual login API
+    // For now, simulate login
     setTimeout(() => {
       setLoading(false);
       navigate("/home");
@@ -49,6 +79,16 @@ export default function LoginPage() {
 
         {/* Form */}
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+              <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-white text-xs font-bold">!</span>
+              </div>
+              <p className="text-sm text-red-600 font-medium">{error}</p>
+            </div>
+          )}
+
           {/* Email */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-[#0D3D25]">
@@ -101,8 +141,8 @@ export default function LoginPage() {
           {/* Login Button */}
           <button
             type="submit"
-            disabled={loading}
-            className="w-full border-2 border-[#1A8A52] text-[#1A8A52] hover:bg-[#1A8A52] hover:text-white font-semibold py-3 rounded-2xl transition-all duration-200 mt-1 disabled:opacity-60"
+            disabled={loading || !email.trim() || !password.trim()}
+            className="w-full border-2 border-[#1A8A52] text-[#1A8A52] hover:bg-[#1A8A52] hover:text-white font-semibold py-3 rounded-2xl transition-all duration-200 mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Memproses..." : "Login"}
           </button>

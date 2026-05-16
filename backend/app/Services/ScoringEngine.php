@@ -13,7 +13,7 @@ class ScoringEngine
 
     private const SANITATION_WEIGHT = 0.20;
 
-    private const MAX_COOK_TO_DISTRIBUTE_MINUTES = 240;
+    private const MAX_SERVE_TO_DISTRIBUTE_MINUTES = 240;
 
     /**
      * Hitung skor dengan data Gemini + submission (NutriGuard PROMPT 1-C).
@@ -32,18 +32,18 @@ class ScoringEngine
         $immediateAction = false;
         $hardRuleTriggered = false;
 
-        $jedaMenit = NutriGuardPrompts::jedaMenitMasakDistribusi($submission);
-        if ($jedaMenit > self::MAX_COOK_TO_DISTRIBUTE_MINUTES) {
+        $jedaMenit = NutriGuardPrompts::jedaMenitSajiDistribusi($submission);
+        if ($jedaMenit > self::MAX_SERVE_TO_DISTRIBUTE_MINUTES) {
             $jam = number_format($jedaMenit / 60, 1);
             $hardRuleTriggered = true;
             $immediateAction = true;
             $violations[] = [
                 'dimension' => 'keamanan',
                 'severity' => 'CRITICAL',
-                'description' => "Jeda total masak hingga distribusi mencapai {$jam} jam, melebihi batas aman 4 jam",
+                'description' => "Jeda saji hingga distribusi mencapai {$jam} jam, melebihi batas aman 4 jam",
                 'corrective_action' => 'Hentikan distribusi segera. Makanan berisiko tinggi kontaminasi bakteri.',
             ];
-            $feedback['immediate_actions'][] = 'Hentikan distribusi makanan sekarang — jeda masak melebihi 4 jam.';
+            $feedback['immediate_actions'][] = 'Hentikan distribusi makanan sekarang — jeda saji ke distribusi melebihi 4 jam.';
         }
 
         $san = $submission->sanitationCheck;
@@ -193,30 +193,21 @@ class ScoringEngine
     {
         $score = 100;
 
-        $cookToServe = (float) ($gemini['cook_to_serve_hours'] ?? 0);
-        if ($cookToServe <= 0 && $submission->cook_start_at && $submission->serve_planned_at) {
-            $cookToServe = abs($submission->cook_start_at->diffInMinutes($submission->serve_planned_at)) / 60;
-        }
-
-        if ($cookToServe > 4) {
-            $score -= 50;
-        } elseif ($cookToServe > 3) {
-            $score -= 20;
-            $violations[] = $this->violation('keamanan', 'MEDIUM', 'Jeda masak ke sajian terlalu lama', 'Percepat penyajian setelah memasak.');
-        } elseif ($cookToServe > 2) {
-            $score -= 5;
-        }
-
+        // Only validate serve to distribute time (the important one for food safety)
         $serveToDist = (float) ($gemini['serve_to_distribute_hours'] ?? 0);
         if ($serveToDist <= 0 && $submission->serve_planned_at && $submission->distribute_at) {
             $serveToDist = abs($submission->serve_planned_at->diffInMinutes($submission->distribute_at)) / 60;
         }
 
-        if ($serveToDist > 2) {
+        if ($serveToDist > 4) {
+            $score -= 50;
+            $violations[] = $this->violation('keamanan', 'CRITICAL', 'Jeda sajian ke distribusi melebihi 4 jam', 'Hentikan distribusi segera. Risiko kontaminasi bakteri tinggi.');
+        } elseif ($serveToDist > 3) {
             $score -= 25;
-            $violations[] = $this->violation('keamanan', 'HIGH', 'Jeda sajian ke distribusi terlalu lama', 'Distribusikan segera setelah sajian.');
-        } elseif ($serveToDist > 1) {
+            $violations[] = $this->violation('keamanan', 'HIGH', 'Jeda sajian ke distribusi terlalu lama', 'Distribusikan segera sebelum melewati batas 4 jam.');
+        } elseif ($serveToDist > 2) {
             $score -= 10;
+            $violations[] = $this->violation('keamanan', 'MEDIUM', 'Jeda sajian ke distribusi perlu dipercepat', 'Percepat distribusi untuk menjaga kualitas makanan.');
         }
 
         if (! $submission->image_path) {

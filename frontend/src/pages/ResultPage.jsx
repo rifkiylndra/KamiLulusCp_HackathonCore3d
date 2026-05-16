@@ -145,13 +145,64 @@ export default function ResultPage() {
                 bg: "bg-[#1A8A52]" 
               },
             ],
-            pelanggaran: (assessment.violations || []).map(v => ({
-              level: v.severity === 'critical' ? 'KRITIS' : v.severity === 'warning' ? 'SEDANG' : 'INFO',
-              levelColor: v.severity === 'critical' ? 'bg-red-500 text-white' : 'bg-amber-400 text-white',
-              waktu: new Date().toLocaleTimeString('id-ID'),
-              judul: v.title || 'Pelanggaran',
-              deskripsi: v.description || '',
-            })),
+            pelanggaran: (assessment.violations || []).map(v => {
+              // Create a concise title and keep full description
+              let judul = '';
+              let deskripsi = v.description || '';
+              
+              // Generate concise titles based on violation content patterns
+              const desc = deskripsi.toLowerCase();
+              
+              if (desc.includes('bahan') && desc.includes('rusak')) {
+                judul = 'Kondisi Bahan Baku';
+              } else if (desc.includes('protein') && desc.includes('suhu')) {
+                judul = 'Kontrol Suhu Protein';
+              } else if (desc.includes('dapur') && desc.includes('bersih')) {
+                judul = 'Sanitasi Dapur';
+              } else if (desc.includes('supplier') || desc.includes('pemasok')) {
+                judul = 'Verifikasi Supplier';
+              } else if (desc.includes('jeda') && (desc.includes('distribusi') || desc.includes('saji'))) {
+                judul = 'Manajemen Waktu';
+              } else if (desc.includes('masak') && desc.includes('saji')) {
+                judul = 'Proses Memasak';
+              } else if (desc.includes('higiene') || desc.includes('kebersihan')) {
+                judul = 'Standar Higiene';
+              } else if (desc.includes('suhu') && desc.includes('penyimpanan')) {
+                judul = 'Kontrol Penyimpanan';
+              } else if (desc.includes('kontaminasi')) {
+                judul = 'Pencegahan Kontaminasi';
+              } else if (desc.includes('peralatan') || desc.includes('alat')) {
+                judul = 'Kondisi Peralatan';
+              } else if (desc.includes('dokumentasi') || desc.includes('pencatatan')) {
+                judul = 'Sistem Dokumentasi';
+              } else {
+                // Smart fallback: extract key noun/action from description
+                const words = deskripsi.split(' ');
+                const keyWords = words.filter(word => 
+                  word.length > 3 && 
+                  !['yang', 'dan', 'atau', 'dalam', 'pada', 'untuk', 'dengan', 'dari', 'ke', 'di', 'oleh'].includes(word.toLowerCase())
+                );
+                
+                if (keyWords.length >= 2) {
+                  judul = keyWords.slice(0, 2).join(' ');
+                } else if (keyWords.length === 1) {
+                  judul = keyWords[0];
+                } else {
+                  judul = words.slice(0, 2).join(' ');
+                }
+                
+                // Capitalize first letter
+                judul = judul.charAt(0).toUpperCase() + judul.slice(1);
+              }
+              
+              return {
+                level: v.severity === 'CRITICAL' ? 'KRITIS' : v.severity === 'HIGH' ? 'TINGGI' : v.severity === 'MEDIUM' ? 'SEDANG' : 'INFO',
+                levelColor: v.severity === 'CRITICAL' ? 'bg-red-600 text-white' : v.severity === 'HIGH' ? 'bg-red-500 text-white' : v.severity === 'MEDIUM' ? 'bg-amber-400 text-white' : 'bg-blue-400 text-white',
+                waktu: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                judul: judul || 'Pelanggaran',
+                deskripsi: deskripsi,
+              };
+            }),
             catatan: `"Hasil analisis untuk menu: ${apiResult.menu_name} di ${apiResult.sppg_name}"`,
             rekomendasi: (assessment.corrective_feedback ? [
               {
@@ -159,21 +210,21 @@ export default function ResultPage() {
                 bg: "bg-red-50 border-red-100",
                 titleColor: "text-red-600",
                 judul: "Tindakan Kritis",
-                isi: assessment.corrective_feedback.immediate_actions || 'Lihat detail untuk tindakan kritis',
+                items: assessment.corrective_feedback.immediate_actions || [],
               },
               {
                 icon: <TrendingUp className="w-5 h-5 text-amber-500" />,
                 bg: "bg-amber-50 border-amber-100",
                 titleColor: "text-amber-700",
                 judul: "Optimalisasi Esok",
-                isi: assessment.corrective_feedback.tomorrow_improvements || 'Lihat rekomendasi untuk perbaikan esok hari',
+                items: assessment.corrective_feedback.tomorrow_improvements || [],
               },
               {
                 icon: <CheckCircle className="w-5 h-5 text-[#1A8A52]" />,
                 bg: "bg-green-50 border-green-100",
                 titleColor: "text-[#1A8A52]",
                 judul: "Catatan Rutin",
-                isi: assessment.corrective_feedback.routine_notes || 'Pertahankan standar operasional yang ada',
+                items: assessment.corrective_feedback.routine_notes || [],
               },
             ] : []),
           };
@@ -302,35 +353,46 @@ export default function ResultPage() {
               </div>
 
               <div className="flex flex-col gap-4">
-                {result.pelanggaran.map((p, i) => (
-                  <div
-                    key={i}
-                    className={`border-l-4 pl-3 md:pl-4 py-1 ${
-                      p.level === "KRITIS"
-                        ? "border-red-500"
-                        : "border-amber-400"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span
-                        className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${p.levelColor}`}
-                      >
-                        {p.level}
-                      </span>
-                      <span className="text-[10px] text-gray-400">
-                        {p.waktu}
-                      </span>
+                {result.pelanggaran && result.pelanggaran.length > 0 ? (
+                  result.pelanggaran.map((p, i) => (
+                    <div
+                      key={i}
+                      className={`border-l-4 pl-3 md:pl-4 py-1 ${
+                        p.level === "KRITIS"
+                          ? "border-red-500"
+                          : p.level === "TINGGI"
+                          ? "border-red-400"
+                          : "border-amber-400"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span
+                          className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${p.levelColor}`}
+                        >
+                          {p.level}
+                        </span>
+                        <span className="text-[10px] text-gray-400">
+                          {p.waktu}
+                        </span>
+                      </div>
+
+                      <p className="text-sm font-bold text-[#0D3D25] mb-1">
+                        {p.judul}
+                      </p>
+
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        {p.deskripsi}
+                      </p>
                     </div>
-
-                    <p className="text-sm font-bold text-[#0D3D25] mb-1">
-                      {p.judul}
-                    </p>
-
-                    <p className="text-xs text-gray-500 leading-relaxed">
-                      {p.deskripsi}
+                  ))
+                ) : (
+                  <div className="bg-green-50 border border-green-100 rounded-2xl p-4 flex items-center gap-3">
+                    <CheckCircle className="w-5 h-5 text-[#1A8A52] shrink-0" />
+                    <p className="text-sm text-gray-600">
+                      Tidak ada pelanggaran terdeteksi. Menu sudah memenuhi standar keamanan pangan.
                     </p>
                   </div>
-                ))}
+                )}
               </div>
 
               <div className="bg-gray-50 rounded-2xl p-4 mt-auto">
@@ -350,22 +412,42 @@ export default function ResultPage() {
                 </h2>
               </div>
 
-              {result.rekomendasi.map((r, i) => (
-                <div
-                  key={i}
-                  className={`border rounded-2xl p-4 md:p-5 flex gap-3.5 ${r.bg}`}
-                >
-                  <div className="shrink-0 mt-0.5">{r.icon}</div>
-                  <div>
-                    <p className={`text-sm font-bold mb-1.5 ${r.titleColor}`}>
-                      {r.judul}
-                    </p>
-                    <p className="text-xs text-gray-600 leading-relaxed">
-                      {r.isi}
-                    </p>
+              {result.rekomendasi && result.rekomendasi.length > 0 ? (
+                result.rekomendasi.map((r, i) => (
+                  <div
+                    key={i}
+                    className={`border rounded-2xl p-4 md:p-5 flex gap-3.5 ${r.bg}`}
+                  >
+                    <div className="shrink-0 mt-0.5">{r.icon}</div>
+                    <div className="flex-1">
+                      <p className={`text-sm font-bold mb-2 ${r.titleColor}`}>
+                        {r.judul}
+                      </p>
+                      {r.items && r.items.length > 0 ? (
+                        <ul className="space-y-2">
+                          {r.items.map((item, idx) => (
+                            <li key={idx} className="text-xs text-gray-600 leading-relaxed flex gap-2">
+                              <span className="text-gray-400 shrink-0">•</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-gray-400 italic">
+                          Tidak ada rekomendasi khusus untuk kategori ini
+                        </p>
+                      )}
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center gap-3">
+                  <Sparkles className="w-5 h-5 text-blue-500 shrink-0" />
+                  <p className="text-sm text-gray-600">
+                    Analisis AI sedang memproses rekomendasi. Silakan refresh halaman dalam beberapa saat.
+                  </p>
                 </div>
-              ))}
+              )}
 
               <KitchenVisual />
             </div>
