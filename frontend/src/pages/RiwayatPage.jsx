@@ -26,7 +26,8 @@ import {
   fetchMonthlyStats, 
   fetchWeeklyTrend, 
   fetchStatusDistribution, 
-  fetchSppgLeaderboard 
+  fetchSppgLeaderboard,
+  getCurrentSppg
 } from "../services/api";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -103,11 +104,16 @@ export default function RiwayatPage() {
         setError(null);
         console.log('🔄 Fetching riwayat data...');
         
+        // Get current SPPG ID
+        const currentSppg = getCurrentSppg();
+        const sppgId = currentSppg?.id || null;
+        console.log('📍 Current SPPG ID:', sppgId);
+        
         // Fetch all data in parallel
         const [monthly, weekly, distribution, leaderboard] = await Promise.all([
-          fetchMonthlyStats(),
-          fetchWeeklyTrend(),
-          fetchStatusDistribution(),
+          fetchMonthlyStats(sppgId),
+          fetchWeeklyTrend(sppgId),
+          fetchStatusDistribution(sppgId),
           fetchSppgLeaderboard()
         ]);
         

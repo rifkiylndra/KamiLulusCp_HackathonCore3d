@@ -238,9 +238,13 @@ export const fetchLatestResult = async (sppgId = null) => {
 };
 
 // RiwayatPage API functions
-export const fetchMonthlyStats = async () => {
+export const fetchMonthlyStats = async (sppgId = null) => {
   try {
-    const response = await fetch(API_ENDPOINTS.DASHBOARD_MONTHLY_STATS);
+    let url = API_ENDPOINTS.DASHBOARD_MONTHLY_STATS;
+    if (sppgId) {
+      url += `?sppg_id=${sppgId}`;
+    }
+    const response = await fetch(url);
     const data = await response.json();
     return data.data || {};
   } catch (error) {
@@ -249,9 +253,13 @@ export const fetchMonthlyStats = async () => {
   }
 };
 
-export const fetchWeeklyTrend = async () => {
+export const fetchWeeklyTrend = async (sppgId = null) => {
   try {
-    const response = await fetch(API_ENDPOINTS.DASHBOARD_WEEKLY_TREND);
+    let url = API_ENDPOINTS.DASHBOARD_WEEKLY_TREND;
+    if (sppgId) {
+      url += `?sppg_id=${sppgId}`;
+    }
+    const response = await fetch(url);
     const data = await response.json();
     return data.data || [];
   } catch (error) {
@@ -260,9 +268,13 @@ export const fetchWeeklyTrend = async () => {
   }
 };
 
-export const fetchStatusDistribution = async () => {
+export const fetchStatusDistribution = async (sppgId = null) => {
   try {
-    const response = await fetch(API_ENDPOINTS.DASHBOARD_STATUS_DISTRIBUTION);
+    let url = API_ENDPOINTS.DASHBOARD_STATUS_DISTRIBUTION;
+    if (sppgId) {
+      url += `?sppg_id=${sppgId}`;
+    }
+    const response = await fetch(url);
     const data = await response.json();
     return data.data || { distribution: [], total: 0 };
   } catch (error) {

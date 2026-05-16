@@ -30,9 +30,23 @@ class MealSubmissionController extends Controller
                 );
             }
 
+            // Determine submitted_by value with fallback logic
+            $submittedBy = $data['submitted_by'] ?? null;
+            
+            // If not provided, get SPPG name from sppg_id relationship
+            if (!$submittedBy && isset($data['sppg_id'])) {
+                $sppg = \App\Models\Sppg::find($data['sppg_id']);
+                $submittedBy = $sppg ? $sppg->name : 'Petugas SPPG';
+            }
+            
+            // Final fallback
+            if (!$submittedBy) {
+                $submittedBy = 'Petugas SPPG';
+            }
+
             $submission = MealSubmission::create([
                 'sppg_id' => $data['sppg_id'],
-                'submitted_by' => $data['submitted_by'] ?? 'Petugas SPPG',
+                'submitted_by' => $submittedBy,
                 'menu_name' => $data['menu_name'],
                 'portion_count' => $data['portion_count'],
                 'cook_start_at' => $data['cook_start_at'],

@@ -8,13 +8,12 @@ import {
   AlertTriangle,
   ChevronDown,
   Sparkles,
-  Upload,
   CheckCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import NavbarLogin from "../components/layout/NavbarLogin";
 import Footer from "../components/layout/Footer";
-import { submitMeal, pollSubmissionStatus, analyzePhotoForIngredients } from "../services/api";
+import { submitMeal, pollSubmissionStatus, analyzePhotoForIngredients, getCurrentSppg } from "../services/api";
 
 // ── Step Indicator ────────────────────────────────────────────────────────────
 function StepIndicator({ current }) {
@@ -645,6 +644,12 @@ export default function SubmitFormPage() {
     setLoading(true);
 
     try {
+      // Get logged-in SPPG data
+      const currentSppg = getCurrentSppg();
+      if (!currentSppg || !currentSppg.id) {
+        throw new Error('Anda harus login terlebih dahulu');
+      }
+
       // Validate required fields
       if (!menuData.namaMenu.trim()) {
         throw new Error('Nama menu harus diisi');
@@ -665,8 +670,9 @@ export default function SubmitFormPage() {
       // Create FormData object with all form fields in backend format
       const formData = new FormData();
       
-      // Required fields - Use first available SPPG ID (4)
-      formData.append('sppg_id', '4'); // SPPG Hub 01 - Jakarta Pusat
+      // Required fields - Use logged-in SPPG ID and name
+      formData.append('sppg_id', currentSppg.id);
+      formData.append('submitted_by', currentSppg.name);
       formData.append('menu_name', menuData.namaMenu);
       formData.append('portion_count', waktuData.porsi);
       

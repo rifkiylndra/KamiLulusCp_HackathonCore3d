@@ -148,15 +148,21 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function monthlyStats()
+    public function monthlyStats(Request $request)
     {
         try {
             $oneMonthAgo = Carbon::now()->subMonth();
             
             // Get monthly submission counts by status
-            $monthlySubmissions = MealSubmission::with('aiAssessment')
-                ->where('created_at', '>=', $oneMonthAgo)
-                ->get();
+            $query = MealSubmission::with('aiAssessment')
+                ->where('created_at', '>=', $oneMonthAgo);
+            
+            // Filter by SPPG ID if provided
+            if ($request->has('sppg_id')) {
+                $query->where('sppg_id', $request->sppg_id);
+            }
+            
+            $monthlySubmissions = $query->get();
 
             $stats = [
                 'total_monthly' => $monthlySubmissions->count(),
@@ -191,7 +197,7 @@ class DashboardController extends Controller
         }
     }
 
-    public function weeklyTrend()
+    public function weeklyTrend(Request $request)
     {
         try {
             $weeklyData = [];
@@ -201,9 +207,15 @@ class DashboardController extends Controller
                 $date = Carbon::now()->subDays($i);
                 $dayName = $days[$date->dayOfWeek];
                 
-                $submissions = MealSubmission::with('aiAssessment')
-                    ->whereDate('created_at', $date->toDateString())
-                    ->get();
+                $query = MealSubmission::with('aiAssessment')
+                    ->whereDate('created_at', $date->toDateString());
+                
+                // Filter by SPPG ID if provided
+                if ($request->has('sppg_id')) {
+                    $query->where('sppg_id', $request->sppg_id);
+                }
+                
+                $submissions = $query->get();
 
                 $gizi = 0;
                 $keamanan = 0;
@@ -240,10 +252,17 @@ class DashboardController extends Controller
         }
     }
 
-    public function statusDistribution()
+    public function statusDistribution(Request $request)
     {
         try {
-            $submissions = MealSubmission::with('aiAssessment')->get();
+            $query = MealSubmission::with('aiAssessment');
+            
+            // Filter by SPPG ID if provided
+            if ($request->has('sppg_id')) {
+                $query->where('sppg_id', $request->sppg_id);
+            }
+            
+            $submissions = $query->get();
             
             $distribution = [
                 'aman' => 0,
