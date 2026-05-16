@@ -6,7 +6,7 @@
 
 ```bash
 # Edit .env
-GEMINI_API_KEY=your_api_key_here
+GEMINI_API_KEY=AIzaSyAQNu3AmKxLFrm1NWSuKLmygL5sR9cHhKw
 QUEUE_CONNECTION=database
 ```
 

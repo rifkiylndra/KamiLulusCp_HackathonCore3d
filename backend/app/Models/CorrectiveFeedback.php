@@ -9,6 +9,8 @@ class CorrectiveFeedback extends Model
 {
     use HasFactory;
 
+    protected $table = 'corrective_feedbacks';
+
     protected $fillable = [
         'ai_assessment_id', 'immediate_actions', 
         'tomorrow_improvements', 'routine_notes', 'generated_at'
