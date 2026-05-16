@@ -1,4 +1,5 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   Sparkles,
@@ -9,76 +10,11 @@ import {
   ArrowLeft,
   Wrench,
   Leaf,
+  Loader,
 } from "lucide-react";
 import NavbarLogin from "../components/layout/NavbarLogin";
 import Footer from "../components/layout/Footer";
-
-// ── Mock Result Data ──────────────────────────────────────────────────────────
-const result = {
-  skor: 68,
-  status: "PERHATIAN",
-  dimensi: [
-    { label: "GIZI", nilai: 78, color: "#1A8A52", bg: "bg-[#1A8A52]" },
-    {
-      label: "KEAMANAN PANGAN",
-      nilai: 61,
-      color: "#F59E0B",
-      bg: "bg-amber-400",
-      critical: true,
-    },
-    { label: "SANITASI", nilai: 85, color: "#1A8A52", bg: "bg-[#1A8A52]" },
-  ],
-  pelanggaran: [
-    {
-      level: "KRITIS",
-      levelColor: "bg-red-500 text-white",
-      waktu: "Pkl 12:45 u IB",
-      judul: "Jeda masak–sajian 4.5 jam",
-      deskripsi:
-        "Melewati batas aman maksimal 4 jam. Risiko pertumbuhan bakteri termofilik meningkat signifikan.",
-    },
-    {
-      level: "SEDANG",
-      levelColor: "bg-amber-400 text-white",
-      waktu: "Analisis Nutrisi AI",
-      judul: "Protein hanya 9g/porsi",
-      deskripsi:
-        "Standar minimum MBG adalah 12g protein per porsi untuk pertumbuhan optimal siswa.",
-    },
-  ],
-  catatan:
-    '"Data di atas diverifikasi melalui integrasi IoT sensor suhu ruang dan analisis citra piring saji secara real-time."',
-  rekomendasi: [
-    {
-      icon: <ShieldAlert className="w-5 h-5 text-red-500" />,
-      bg: "bg-red-50 border-red-100",
-      titleColor: "text-red-600",
-      judul: "Tindakan Kritis: Distribusi Segera",
-      isi: (
-        <>
-          Percepat distribusi. Sisa waktu aman:{" "}
-          <span className="font-bold text-amber-600">30 menit</span>. Jika
-          melewati batas, masak ulang atau buang untuk mencegah keracunan
-          pangan.
-        </>
-      ),
-    },
-    {
-      icon: <TrendingUp className="w-5 h-5 text-amber-500" />,
-      bg: "bg-amber-50 border-amber-100",
-      titleColor: "text-amber-700",
-      judul: "Optimalisasi Menu Esok",
-      isi: "Tambahkan 1 butir telur rebus per porsi (+6g protein) ATAU ganti tahu dengan tempe di menu yang sama untuk memenuhi target protein nasional.",
-    },
-    {
-      icon: <CheckCircle className="w-5 h-5 text-[#1A8A52]" />,
-      bg: "bg-green-50 border-green-100",
-      titleColor: "text-[#1A8A52]",
-      judul: "Pemeliharaan Preventif",
-      isi: "Pastikan bahan protein disimpan di kulkas maks 4°C sejak diterima dari supplier. Log suhu harian menunjukkan fluktuasi di pagi hari.",
-    },
-  ],
-};
+import { getSubmissionStatus } from "../services/api";
 
 // ── Score Bar ─────────────────────────────────────────────────────────────────
 function ScoreBar({ label, nilai, bg, critical }) {
@@ -169,6 +105,133 @@ function KitchenVisual() {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function ResultPage() {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [result, setResult] = useState(null);
+
+  useEffect(() => {
+    const fetchResult = async () => {
+      try {
+        setLoading(true);
+        const data = await getSubmissionStatus(id);
+        
+        if (data.status === 'completed' && data.result) {
+          // Transform API data to match UI format
+          const apiResult = data.result;
+          const assessment = apiResult;
+          
+          const transformedResult = {
+            skor: Math.round(assessment.final_score || 0),
+            status: assessment.assessment_status === 'AMAN' ? 'AMAN' : assessment.assessment_status === 'BAHAYA' ? 'BAHAYA' : 'PERHATIAN',
+            dimensi: [
+              { 
+                label: "GIZI", 
+                nilai: Math.round(assessment.scores?.nutrition || 0), 
+                color: "#1A8A52", 
+                bg: "bg-[#1A8A52]" 
+              },
+              {
+                label: "KEAMANAN PANGAN",
+                nilai: Math.round(assessment.scores?.safety || 0),
+                color: "#F59E0B",
+                bg: "bg-amber-400",
+                critical: (assessment.scores?.safety || 0) < 70,
+              },
+              { 
+                label: "SANITASI", 
+                nilai: Math.round(assessment.scores?.sanitation || 0), 
+                color: "#1A8A52", 
+                bg: "bg-[#1A8A52]" 
+              },
+            ],
+            pelanggaran: (assessment.violations || []).map(v => ({
+              level: v.severity === 'critical' ? 'KRITIS' : v.severity === 'warning' ? 'SEDANG' : 'INFO',
+              levelColor: v.severity === 'critical' ? 'bg-red-500 text-white' : 'bg-amber-400 text-white',
+              waktu: new Date().toLocaleTimeString('id-ID'),
+              judul: v.title || 'Pelanggaran',
+              deskripsi: v.description || '',
+            })),
+            catatan: `"Hasil analisis untuk menu: ${apiResult.menu_name} di ${apiResult.sppg_name}"`,
+            rekomendasi: (assessment.corrective_feedback ? [
+              {
+                icon: <ShieldAlert className="w-5 h-5 text-red-500" />,
+                bg: "bg-red-50 border-red-100",
+                titleColor: "text-red-600",
+                judul: "Tindakan Kritis",
+                isi: assessment.corrective_feedback.immediate_actions || 'Lihat detail untuk tindakan kritis',
+              },
+              {
+                icon: <TrendingUp className="w-5 h-5 text-amber-500" />,
+                bg: "bg-amber-50 border-amber-100",
+                titleColor: "text-amber-700",
+                judul: "Optimalisasi Esok",
+                isi: assessment.corrective_feedback.tomorrow_improvements || 'Lihat rekomendasi untuk perbaikan esok hari',
+              },
+              {
+                icon: <CheckCircle className="w-5 h-5 text-[#1A8A52]" />,
+                bg: "bg-green-50 border-green-100",
+                titleColor: "text-[#1A8A52]",
+                judul: "Catatan Rutin",
+                isi: assessment.corrective_feedback.routine_notes || 'Pertahankan standar operasional yang ada',
+              },
+            ] : []),
+          };
+          
+          setResult(transformedResult);
+        } else if (data.status === 'pending' || data.status === 'processing') {
+          setError('Analisis masih berjalan. Silakan tunggu...');
+        } else if (data.status === 'failed') {
+          setError('Analisis gagal. Silakan coba kirim ulang.');
+        }
+      } catch (err) {
+        setError(`Gagal memuat hasil: ${err.message}`);
+        console.error('Error fetching result:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchResult();
+    }
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 font-sans antialiased flex flex-col">
+        <NavbarLogin activePage="laporan" />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <Loader className="w-8 h-8 text-[#1A8A52] animate-spin" />
+            <p className="text-gray-600">Memuat hasil analisis...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error || !result) {
+    return (
+      <div className="min-h-screen bg-gray-50 font-sans antialiased flex flex-col">
+        <NavbarLogin activePage="laporan" />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <AlertTriangle className="w-8 h-8 text-red-500" />
+            <p className="text-gray-600">{error || 'Hasil tidak ditemukan'}</p>
+            <button
+              onClick={() => navigate("/home")}
+              className="mt-4 bg-[#0D5C3A] hover:bg-[#0a4a2e] text-white font-semibold px-6 py-2 rounded-xl transition-colors"
+            >
+              Kembali ke Home
+            </button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   const statusStyle =
     result.status === "AMAN"
