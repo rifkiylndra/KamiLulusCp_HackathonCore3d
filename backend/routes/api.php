@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\MealSubmissionController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\SppgController;
+use App\Http\Controllers\Api\ScoringTestController;
 
 // SPPG
 Route::apiResource('sppg', SppgController::class);
@@ -19,3 +20,13 @@ Route::prefix('submissions')->group(function () {
 // Dashboard
 Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
 Route::get('/dashboard/recent-sppg', [DashboardController::class, 'recentSppg']);
+
+// Scoring Test Endpoints
+Route::prefix('scoring-test')->group(function () {
+    Route::get('/perfect', [ScoringTestController::class, 'testPerfectSubmission']);
+    Route::get('/hard-rule-violation', [ScoringTestController::class, 'testHardRuleViolation']);
+    Route::get('/poor-nutrition', [ScoringTestController::class, 'testPoorNutrition']);
+    Route::get('/poor-sanitation', [ScoringTestController::class, 'testPoorSanitation']);
+    Route::get('/score/{submissionId}', [ScoringTestController::class, 'scoreSubmission']);
+    Route::get('/list', [ScoringTestController::class, 'listTestSubmissions']);
+});
