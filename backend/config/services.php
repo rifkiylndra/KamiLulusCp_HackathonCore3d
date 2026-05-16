@@ -37,6 +37,8 @@ return [
 
     'gemini' => [
         'api_key' => env('GEMINI_API_KEY'),
+        'model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
+        'queue' => env('QUEUE_NAME', 'ai-processing'),
     ],
 
 ];
