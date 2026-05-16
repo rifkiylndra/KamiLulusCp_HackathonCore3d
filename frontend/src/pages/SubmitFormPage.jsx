@@ -10,6 +10,7 @@ import {
   Sparkles,
   Upload,
   CheckCircle,
+  RefreshCw,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import NavbarLogin from "../components/layout/NavbarLogin";
@@ -100,16 +101,96 @@ function SectionCard({ icon, title, badge, children }) {
   );
 }
 
-// ── STEP 1 — Identifikasi Menu ────────────────────────────────────────────────
+// ── STEP 1 — Identifikasi Menu (Live Camera Integration) ──────────────────────
 function StepMenu({ data, setData }) {
-  const inputRef = useRef();
-  const [preview, setPreview] = useState(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [preview, setPreview] = useState(data.previewUrl || null);
+  const [visionLoading, setVisionLoading] = useState(false);
 
-  const handleFile = (file) => {
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    setData((p) => ({ ...p, foto: file }));
+  const openCamera = async () => {
+    setIsCameraOpen(true);
+    setPreview(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" } // Kamera belakang HP
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      console.error("Gagal mengakses kamera harian SPPG:", err);
+      alert("Tidak dapat mengakses kamera. Pastikan izin kamera diberikan.");
+      setIsCameraOpen(false);
+    }
+  };
+
+  const capturePhoto = async () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    const context = canvas.getContext("2d");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const photoDataUrl = canvas.toDataURL("image/jpeg");
+    setPreview(photoDataUrl);
+
+    // Mematikan aliran kamera stream
+    if (video.srcObject) {
+      video.srcObject.getTracks().forEach((track) => track.stop());
+    }
+    setIsCameraOpen(false);
+
+    // Ambil string Base64 murni untuk dikirim ke Laravel API
+    const base64Image = photoDataUrl.split(",")[1];
+    
+    // Simpan ke state form utama
+    setData((p) => ({ ...p, fotoBase64: base64Image, previewUrl: photoDataUrl }));
+
+    // Trigger Analisis Gemini Vision Otomatis via Backend Laravel
+    executeVisionAnalysis(base64Image);
+  };
+
+  const executeVisionAnalysis = async (base64String) => {
+    setVisionLoading(true);
+    try {
+      const resp = await fetch("/api/vision-analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: base64String,
+          mime_type: "image/jpeg"
+        })
+      });
+
+      const result = await resp.json();
+      if (result.status === "success" && result.data) {
+        const aiPayload = result.data;
+        
+        // Auto-fill nama menu utama ke State
+        if (aiPayload.nama_menu) {
+          setData((p) => ({ ...p, namaMenu: aiPayload.nama_menu }));
+        }
+        
+        // Auto-fill data bahan terdeteksi ke State StepWaktu
+        if (aiPayload.bahan && Array.isArray(aiPayload.bahan)) {
+          const formattedBahan = aiPayload.bahan
+            .map((b) => `${b.nama} ${b.gram}g`)
+            .join(", ");
+          
+          // Mengirimkan event penulisan data bahan lintas komponen secara aman
+          window.dispatchEvent(new CustomEvent("ai-autofill-bahan", { detail: formattedBahan }));
+        }
+      }
+    } catch (err) {
+      console.error("Gagal memproses ekstraksi Gemini Vision:", err);
+    } finally {
+      setVisionLoading(false);
+    }
   };
 
   return (
@@ -124,40 +205,54 @@ function StepMenu({ data, setData }) {
       }
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Upload zone */}
+        {/* Real-time Camera capture interface */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-            Foto Menu Masakan
+            Ambil Foto Menu Masakan
           </label>
-          <div
-            onClick={() => inputRef.current?.click()}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              handleFile(e.dataTransfer.files[0]);
-            }}
-            className="border-2 border-dashed border-gray-200 hover:border-[#1A8A52] rounded-2xl h-40 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors group bg-gray-50 hover:bg-green-50/30 overflow-hidden"
-          >
-            {preview ? (
-              <img src={preview} alt="preview" className="w-full h-full object-cover rounded-2xl" />
+          
+          <div className="relative border-2 border-dashed border-gray-200 rounded-2xl h-52 flex flex-col items-center justify-center bg-gray-50 overflow-hidden group">
+            {isCameraOpen ? (
+              <div className="w-full h-full relative">
+                <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={capturePhoto}
+                  className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-[#0D5C3A] hover:bg-[#0a4a2e] text-white text-xs font-bold px-4 py-2 rounded-xl shadow-md transition-all flex items-center gap-1.5"
+                >
+                  <Camera className="w-3.5 h-3.5" /> Ambil Foto
+                </button>
+              </div>
+            ) : preview ? (
+              <div className="w-full h-full relative">
+                <img src={preview} alt="preview menu masakan" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={openCamera}
+                  className="absolute bottom-3 right-3 bg-black/60 hover:bg-black/80 text-white p-2 rounded-xl backdrop-blur-sm transition-all"
+                  title="Foto Ulang"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+                {visionLoading && (
+                  <div className="absolute inset-0 bg-black/40 backdrop-blur-xs flex flex-col items-center justify-center text-white gap-2">
+                    <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span className="text-xs font-medium">Gemini mengekstrak bahan...</span>
+                  </div>
+                )}
+              </div>
             ) : (
-              <>
+              <div onClick={openCamera} className="flex flex-col items-center justify-center gap-2 cursor-pointer w-full h-full transition-all hover:bg-green-50/30">
                 <div className="w-10 h-10 bg-gray-100 group-hover:bg-green-100 rounded-xl flex items-center justify-center transition-colors">
                   <Camera className="w-5 h-5 text-gray-400 group-hover:text-[#1A8A52]" />
                 </div>
                 <p className="text-xs text-gray-400 text-center px-4 leading-relaxed">
-                  Ambil foto atau seret gambar ke sini
+                  Ketuk untuk mengaktifkan kamera SPPG
                 </p>
-              </>
+              </div>
             )}
+            <canvas ref={canvasRef} className="hidden" />
           </div>
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => handleFile(e.target.files[0])}
-          />
         </div>
 
         {/* Name + hint */}
@@ -177,7 +272,7 @@ function StepMenu({ data, setData }) {
           <div className="flex gap-2.5 bg-blue-50 border border-blue-100 rounded-xl p-3.5">
             <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
             <p className="text-xs text-blue-600 leading-relaxed">
-              Sistem AI akan secara otomatis mendeteksi komponen bahan baku setelah Anda mengunggah foto menu.
+              Kamera akan langsung mengambil visual hidangan. Sistem AI Gemini akan membaca isi piring dan menuliskan komposisi gramasi bahan secara otomatis.
             </p>
           </div>
         </div>
@@ -186,8 +281,17 @@ function StepMenu({ data, setData }) {
   );
 }
 
-// ── STEP 2 — Porsi & Waktu ────────────────────────────────────────────────────
+// ── STEP 2 — Porsi & Waktu (Listener untuk AI Auto-fill) ──────────────────────
 function StepWaktu({ data, setData }) {
+  // Menerima data bahan otomatis jika diekstrak dari StepMenu sebelumnya
+  useRef(() => {
+    const handleAutofill = (e) => {
+      setData((p) => ({ ...p, bahan: e.detail }));
+    };
+    window.addEventListener("ai-autofill-bahan", handleAutofill);
+    return () => window.removeEventListener("ai-autofill-bahan", handleAutofill);
+  }, [setData]);
+
   return (
     <SectionCard
       icon={<Clock className="w-5 h-5" />}
@@ -195,9 +299,16 @@ function StepWaktu({ data, setData }) {
     >
       <div className="flex flex-col gap-5">
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-            Daftar Bahan Utama
-          </label>
+          <div className="flex justify-between items-center mb-2">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Daftar Bahan Utama
+            </label>
+            {data.bahan && (
+              <span className="text-[10px] bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" /> Auto-filled by AI
+              </span>
+            )}
+          </div>
           <textarea
             rows={4}
             placeholder="Sebutkan bahan utama dan bumbu yang digunakan..."
@@ -233,7 +344,7 @@ function StepWaktu({ data, setData }) {
         <div className="flex items-start gap-2.5 bg-red-50 border border-red-100 rounded-xl p-4">
           <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
           <p className="text-xs text-red-600 font-medium leading-relaxed">
-            Peringatan: Jeda masak ke sajian maksimal 4 jam untuk menjaga kualitas nutrisi dan higienitas.
+            Peringatan: Jeda masak ke sajian maksimal 4 jam untuk menjaga kualitas nutrisi dan higienitas. [cite: 18, 41]
           </p>
         </div>
       </div>
@@ -306,15 +417,15 @@ function StepSanitasi({ data, setData }) {
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// ── Main Page (Koneksi Produksi ke API Laravel) ──────────────────────────────
 export default function SubmitFormPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  const [menuData, setMenuData] = useState({ foto: null, namaMenu: "" });
+  const [menuData, setMenuData] = useState({ fotoBase64: null, previewUrl: null, namaMenu: "" });
   const [waktuData, setWaktuData] = useState({
-    bahan: "", porsi: "", mulaiMasak: "", estSaji: "", distribusi: "",
+    bahan: "", porsi: "", mulaiMasak: "06:00", estSaji: "07:30", distribusi: "08:00",
   });
   const [sanitasiData, setSanitasiData] = useState({
     apd: false,
@@ -332,12 +443,69 @@ export default function SubmitFormPage() {
     if (step > 1) setStep((s) => s - 1);
   };
 
-  const handleSubmit = () => {
+  // Perhitungan utilitas durasi waktu masak standar
+  const toMinutes = (timeStr) => {
+    if (!timeStr) return 0;
+    const [h, m] = timeStr.split(":").map(Number);
+    return h * 60 + m;
+  };
+
+  const handleSubmit = async () => {
     setLoading(true);
-    setTimeout(() => {
+
+    // Hitung Jeda secara dinamis di sisi klien
+    const minMasak = toMinutes(waktuData.mulaiMasak);
+    const minDistrib = toMinutes(waktuData.distribusi);
+    const jedaTotal = (minDistrib - minMasak + 1440) % 1440;
+    const jedaJam = (jedaTotal / 60).toFixed(1);
+
+    // Hitung persentase pemenuhan checklist sanitasi
+    let checkedCount = 0;
+    if (sanitasiData.apd) checkedCount++;
+    if (sanitasiData.kebersihan) checkedCount++;
+    const sanPct = Math.round((checkedCount / 2) * 100);
+
+    // Bungkus semua data menjadi satu payload object terstruktur
+    const payload = {
+      nama_menu: menuData.namaMenu,
+      bahan: waktuData.bahan,
+      porsi: waktuData.porsi,
+      sasaran: "umum",
+      tMasak: waktuData.mulaiMasak,
+      tSajian: waktuData.estSaji,
+      tDistrib: waktuData.distribusi,
+      jedaJam: jedaJam,
+      jedaTotal: jedaTotal,
+      simpan: sanitasiData.kondisiPenyimpanan,
+      kondisi: sanitasiData.kesegaran,
+      sumber: sanitasiData.sumberBahan,
+      checked_count: checkedCount,
+      total_checks: 2,
+      sanPct: sanPct
+    };
+
+    try {
+      // Kirim data langsung ke endpoint PHP Laravel Anda
+      const response = await fetch("/api/submit-analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+
+      if (result.status === "success" && result.data) {
+        // Redirection halaman ke ResultPage.jsx dengan membawa payload AI asli dari server
+        navigate("/result", { state: { dataAi: result.data } });
+      } else {
+        alert("Gagal memproses analisis: " + (result.message || "Unknown error"));
+      }
+    } catch (error) {
+      console.error("Gagal menghubungi server Laravel:", error);
+      alert("Terjadi kesalahan jaringan saat menghubungi server backend.");
+    } finally {
       setLoading(false);
-      navigate("/result/demo-001");
-    }, 1800);
+    }
   };
 
   const now = new Date();
@@ -386,6 +554,7 @@ export default function SubmitFormPage() {
             <div className="flex items-center gap-3">
               {step > 1 && (
                 <button
+                  type="button"
                   onClick={handleBack}
                   className="text-sm font-semibold text-gray-500 hover:text-[#0D3D25] px-4 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
                 >
@@ -395,6 +564,7 @@ export default function SubmitFormPage() {
 
               {step < 3 ? (
                 <button
+                  type="button"
                   onClick={handleNext}
                   className="flex items-center gap-2 bg-[#0D5C3A] hover:bg-[#0a4a2e] text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-colors"
                 >
@@ -402,6 +572,7 @@ export default function SubmitFormPage() {
                 </button>
               ) : (
                 <button
+                  type="button"
                   onClick={handleSubmit}
                   disabled={loading}
                   className="flex items-center gap-2 bg-[#0D5C3A] hover:bg-[#0a4a2e] text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-all disabled:opacity-60"
