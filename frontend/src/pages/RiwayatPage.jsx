@@ -21,7 +21,6 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { useNavigate } from "react-router-dom";
 import NavbarLogin from "../components/layout/NavbarLogin";
 import Footer from "../components/layout/Footer";
 import { 
@@ -29,8 +28,7 @@ import {
   fetchWeeklyTrend, 
   fetchStatusDistribution, 
   fetchSppgLeaderboard,
-  getCurrentSppg,
-  API_ENDPOINTS
+  getCurrentSppg
 } from "../services/api";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -89,7 +87,6 @@ function StatCard({ icon, label, value, badge, badgeColor, danger }) {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function RiwayatPage() {
-  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -107,17 +104,14 @@ export default function RiwayatPage() {
   const [sppgLeaderboard, setSppgLeaderboard] = useState([]);
   const [error, setError] = useState(null);
 
-  // Handle "Lihat Detail" button - navigate to submissions with BAHAYA filter
+  // Handle "Lihat Detail" button - show danger submissions info
   const handleViewDangerDetails = () => {
     const currentSppg = getCurrentSppg();
     if (currentSppg?.id) {
-      // Navigate to a filtered view - you can create a new page or use query params
-      // For now, we'll show an alert with the API endpoint to fetch danger submissions
-      const dangerUrl = `${API_ENDPOINTS.SUBMISSIONS_LIST}?sppg_id=${currentSppg.id}&status=completed`;
-      console.log('Fetching danger submissions from:', dangerUrl);
-      
-      // You can implement a modal or navigate to a detail page
-      alert(`Fitur detail laporan bahaya akan menampilkan ${monthlyStats.bahaya} laporan dengan status BAHAYA.\n\nImplementasi: Buat halaman baru atau modal untuk menampilkan list submission dengan filter status BAHAYA.`);
+      // Show user-friendly message in Indonesian
+      alert(`⚠️ PERINGATAN BAHAYA\n\nDitemukan ${monthlyStats.bahaya} laporan dengan status BAHAYA yang memerlukan tindakan segera!\n\nSilakan periksa detail setiap laporan dan lakukan tindakan korektif sesuai rekomendasi sistem.`);
+    } else {
+      alert('Silakan login terlebih dahulu untuk melihat detail laporan.');
     }
   };
 
@@ -714,11 +708,15 @@ export default function RiwayatPage() {
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 outline-none focus:border-[#1A8A52] focus:bg-white transition-all"
                   >
                     <option value="all">Semua Provinsi</option>
-                    {provinces.map((province) => (
-                      <option key={province} value={province}>
-                        {province}
-                      </option>
-                    ))}
+                    {provinces.length > 0 ? (
+                      provinces.map((province) => (
+                        <option key={province} value={province}>
+                          {province}
+                        </option>
+                      ))
+                    ) : (
+                      <option disabled>Loading provinsi...</option>
+                    )}
                   </select>
                 </div>
 
