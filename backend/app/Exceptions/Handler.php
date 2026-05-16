@@ -51,6 +51,61 @@ class Handler extends ExceptionHandler
             }
         });
 
+        // Handle model not found
+        $this->renderable(function (ModelNotFoundException $e, $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Resource not found',
+                ], 404);
+            }
+        });
+
+        // Handle not found HTTP
+        $this->renderable(function (NotFoundHttpException $e, $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Endpoint not found',
+                ], 404);
+            }
+        });
+
+        // Handle method not allowed
+        $this->renderable(function (MethodNotAllowedHttpException $e, $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Method not allowed',
+                ], 405);
+            }
+        });
+
+        // Handle generic exceptions
+        $this->renderable(function (Throwable $e, $request) {
+            if ($request->expectsJson()) {
+                $response = [
+                    'success' => false,
+                    'message' => 'An error occurred',
+                ];
+
+                if (config('app.debug')) {
+                    $response['debug'] = [
+                        'exception' => get_class($e),
+                        'message' => $e->getMessage(),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                    ];
+                }
+
+                return response()->json($response, 500);
+            }
+        });
+    }
+}
+            }
+        });
+
         // Handle model not found exceptions
         $this->renderable(function (ModelNotFoundException $e, $request) {
             if ($request->expectsJson()) {

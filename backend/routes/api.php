@@ -17,13 +17,18 @@ Route::apiResource('sppg', SppgController::class);
 Route::prefix('submissions')->group(function () {
     Route::post('/', [MealSubmissionController::class, 'store']);
     Route::get('/', [MealSubmissionController::class, 'index']);
-    Route::get('/{id}', [MealSubmissionController::class, 'show']);
+    Route::get('/search', [MealSubmissionController::class, 'search']);
     Route::get('/{id}/status', [MealSubmissionController::class, 'status']);
+    Route::get('/{id}', [MealSubmissionController::class, 'show']);
+    Route::put('/{id}', [MealSubmissionController::class, 'update']);
+    Route::delete('/{id}', [MealSubmissionController::class, 'destroy']);
 });
 
 // Dashboard
 Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
 Route::get('/dashboard/recent-sppg', [DashboardController::class, 'recentSppg']);
+Route::get('/dashboard/sppg-stats', [DashboardController::class, 'sppgStats']);
+Route::get('/dashboard/top-violations', [DashboardController::class, 'topViolations']);
 
 // Scoring Test Endpoints
 Route::prefix('scoring-test')->group(function () {

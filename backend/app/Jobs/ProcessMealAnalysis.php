@@ -75,6 +75,10 @@ class ProcessMealAnalysis implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
             $this->submission->update(['status' => 'failed']);
+            
+            // Log audit
+            \App\Services\AuditLogger::logAssessmentFailed($this->submission->id, $e->getMessage());
+            
             throw $e;
         }
     }
@@ -187,6 +191,13 @@ class ProcessMealAnalysis implements ShouldQueue
             'tomorrow_improvements' => $results['corrective_feedback']['tomorrow_improvements'] ?? [],
             'routine_notes' => $results['corrective_feedback']['routine_notes'] ?? [],
             'generated_at' => Carbon::now(),
+        ]);
+
+        // Log audit
+        \App\Services\AuditLogger::logAssessmentCompleted($this->submission->id, [
+            'final_score' => $results['final_score'],
+            'status' => $results['status'],
+            'violations_count' => count($results['violations']),
         ]);
     }
 
