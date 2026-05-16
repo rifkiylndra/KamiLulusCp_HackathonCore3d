@@ -181,12 +181,15 @@ export default function ResultPage() {
     <div className="min-h-screen bg-gray-50 font-sans antialiased flex flex-col">
       <NavbarLogin activePage="laporan" />
 
-      <main className="flex-1">
-        <div className="max-w-6xl mx-auto px-6 py-12 space-y-8 pt-20">
-          {/* ── Score Hero Card ── */}
-          <div className="bg-gradient-to-br from-[#EEF7F1] to-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-            <div className="flex items-start justify-between mb-2">
-              <h1 className="text-4xl md:text-5xl font-extrabold text-[#0D3D25] tracking-tight">
+      <main className="flex-1 pt-8">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12 space-y-6 md:space-y-8 pt-20">
+          
+          {/* HERO */}
+          <div className="bg-gradient-to-br from-[#EEF7F1] to-white border border-gray-100 rounded-3xl p-5 md:p-8 shadow-sm">
+            
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+              
+              <h1 className="text-2xl md:text-5xl font-extrabold text-[#0D3D25] tracking-tight leading-tight">
                 Skor Kelayakan:{" "}
                 <span
                   className={
@@ -201,33 +204,36 @@ export default function ResultPage() {
                 </span>{" "}
                 / 100
               </h1>
+
               <span
-                className={`flex items-center gap-1.5 border text-sm font-bold px-4 py-2 rounded-full shrink-0 mt-1 ${statusStyle}`}
+                className={`flex items-center gap-1.5 border text-xs md:text-sm font-bold px-3 md:px-4 py-2 rounded-full w-fit ${statusStyle}`}
               >
                 <AlertTriangle className="w-4 h-4" />
                 {result.status}
               </span>
             </div>
-            <p className="text-gray-400 text-sm mb-8">
-              Hasil analisis sistem cerdas NutriGuard MBG berbasis visi
-              komputer.
+
+            <p className="text-gray-400 text-xs md:text-sm mt-3 mb-6 md:mb-8">
+              Hasil analisis sistem cerdas NutriGuard MBG berbasis visi komputer.
             </p>
 
-            {/* Dimension Bars */}
-            <div className="flex flex-col md:flex-row gap-6 md:gap-10">
+            {/* SCORE BARS */}
+            <div className="flex flex-col md:flex-row gap-5 md:gap-10">
               {result.dimensi.map((d) => (
                 <ScoreBar key={d.label} {...d} />
               ))}
             </div>
           </div>
 
-          {/* ── 2-Column Section ── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left — Pelanggaran */}
-            <div className="bg-white border border-gray-100 rounded-3xl p-7 shadow-sm flex flex-col gap-5">
+          {/* GRID SECTION */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-6">
+            
+            {/* LEFT */}
+            <div className="bg-white border border-gray-100 rounded-3xl p-5 md:p-7 shadow-sm flex flex-col gap-5">
+              
               <div className="flex items-center gap-2.5">
                 <AlertTriangle className="w-5 h-5 text-amber-500" />
-                <h2 className="font-bold text-[#0D3D25] text-base">
+                <h2 className="font-bold text-[#0D3D25] text-sm md:text-base">
                   Temuan Pelanggaran
                 </h2>
               </div>
@@ -236,7 +242,7 @@ export default function ResultPage() {
                 {result.pelanggaran.map((p, i) => (
                   <div
                     key={i}
-                    className={`border-l-4 pl-4 py-1 ${
+                    className={`border-l-4 pl-3 md:pl-4 py-1 ${
                       p.level === "KRITIS"
                         ? "border-red-500"
                         : "border-amber-400"
@@ -252,9 +258,11 @@ export default function ResultPage() {
                         {p.waktu}
                       </span>
                     </div>
+
                     <p className="text-sm font-bold text-[#0D3D25] mb-1">
                       {p.judul}
                     </p>
+
                     <p className="text-xs text-gray-500 leading-relaxed">
                       {p.deskripsi}
                     </p>
@@ -262,19 +270,19 @@ export default function ResultPage() {
                 ))}
               </div>
 
-              {/* IoT Note */}
               <div className="bg-gray-50 rounded-2xl p-4 mt-auto">
-                <p className="text-xs text-gray-400 leading-relaxed italic">
+                <p className="text-[11px] md:text-xs text-gray-400 italic leading-relaxed">
                   {result.catatan}
                 </p>
               </div>
             </div>
 
-            {/* Right — Rekomendasi */}
+            {/* RIGHT */}
             <div className="flex flex-col gap-4">
+              
               <div className="flex items-center gap-2.5">
                 <Sparkles className="w-5 h-5 text-[#1A8A52]" />
-                <h2 className="font-bold text-[#0D3D25] text-base">
+                <h2 className="font-bold text-[#0D3D25] text-sm md:text-base">
                   Tindakan Korektif & Rekomendasi AI
                 </h2>
               </div>
@@ -282,7 +290,7 @@ export default function ResultPage() {
               {result.rekomendasi.map((r, i) => (
                 <div
                   key={i}
-                  className={`border rounded-2xl p-5 flex gap-3.5 ${r.bg}`}
+                  className={`border rounded-2xl p-4 md:p-5 flex gap-3.5 ${r.bg}`}
                 >
                   <div className="shrink-0 mt-0.5">{r.icon}</div>
                   <div>
@@ -296,16 +304,15 @@ export default function ResultPage() {
                 </div>
               ))}
 
-              {/* Kitchen Visual */}
               <KitchenVisual />
             </div>
           </div>
 
-          {/* ── Back Button ── */}
+          {/* BUTTON */}
           <div className="flex justify-center pt-2">
             <button
               onClick={() => navigate("/home")}
-              className="w-full flex items-center justify-center gap-3 bg-[#0D1F17] hover:bg-[#162d20] text-white font-semibold px-10 py-4 rounded-2xl transition-colors text-sm"
+              className="w-full md:w-auto flex items-center justify-center gap-3 bg-[#0D1F17] hover:bg-[#162d20] text-white font-semibold px-6 md:px-10 py-3 md:py-4 rounded-2xl transition-colors text-sm"
             >
               <ArrowLeft className="w-4 h-4" />
               Kembali ke Home

@@ -18,30 +18,48 @@ import Footer from "../components/layout/Footer";
 // ── Step Indicator ────────────────────────────────────────────────────────────
 function StepIndicator({ current }) {
   const steps = ["Menu", "Waktu", "Sanitasi"];
+
   return (
-    <div className="flex items-center justify-center gap-0 mb-10">
+    <div className="flex items-center justify-center mb-8 sm:mb-10 overflow-x-auto pb-2">
       {steps.map((label, i) => {
         const idx = i + 1;
         const done = idx < current;
         const active = idx === current;
+
         return (
-          <div key={label} className="flex items-center">
-            <div className="flex flex-col items-center gap-1.5">
+          <div key={label} className="flex items-center shrink-0">
+            <div className="flex flex-col items-center gap-1.5 min-w-[60px]">
               <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all
-                  ${done ? "bg-[#1A8A52] text-white" : active ? "bg-[#0D5C3A] text-white ring-4 ring-[#0D5C3A]/20" : "bg-gray-100 text-gray-400"}`}
+                className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all
+                ${
+                  done
+                    ? "bg-[#1A8A52] text-white"
+                    : active
+                    ? "bg-[#0D5C3A] text-white ring-4 ring-[#0D5C3A]/20"
+                    : "bg-gray-100 text-gray-400"
+                }`}
               >
-                {done ? <CheckCircle className="w-5 h-5" /> : idx}
+                {done ? <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" /> : idx}
               </div>
+
               <span
-                className={`text-xs font-medium ${active ? "text-[#0D5C3A]" : done ? "text-[#1A8A52]" : "text-gray-400"}`}
+                className={`text-[10px] sm:text-xs font-medium whitespace-nowrap
+                ${
+                  active
+                    ? "text-[#0D5C3A]"
+                    : done
+                    ? "text-[#1A8A52]"
+                    : "text-gray-400"
+                }`}
               >
                 {label}
               </span>
             </div>
+
             {i < steps.length - 1 && (
               <div
-                className={`h-0.5 w-28 mx-2 mb-4 rounded-full transition-all ${done ? "bg-[#1A8A52]" : "bg-gray-200"}`}
+                className={`h-0.5 w-12 sm:w-20 md:w-28 mx-1 sm:mx-2 mb-4 rounded-full transition-all
+                ${done ? "bg-[#1A8A52]" : "bg-gray-200"}`}
               />
             )}
           </div>
@@ -87,14 +105,25 @@ function Select({ value, onChange, options }) {
 // ── Section Card ──────────────────────────────────────────────────────────────
 function SectionCard({ icon, title, badge, children }) {
   return (
-    <div className="bg-white border border-gray-100 rounded-3xl p-7 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
+    <div className="bg-white border border-gray-100 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-7 shadow-sm">
+      
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        
         <div className="flex items-center gap-2.5">
-          <span className="text-[#1A8A52]">{icon}</span>
-          <h2 className="text-lg font-bold text-[#0D3D25]">{title}</h2>
+          <span className="text-[#1A8A52] shrink-0">{icon}</span>
+
+          <h2 className="text-base sm:text-lg font-bold text-[#0D3D25] leading-snug">
+            {title}
+          </h2>
         </div>
-        {badge}
+
+        {badge && (
+          <div className="w-full sm:w-auto">
+            {badge}
+          </div>
+        )}
       </div>
+
       {children}
     </div>
   );
@@ -302,15 +331,25 @@ function StepSanitasi({ data, setData }) {
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
+// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function SubmitFormPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  const [menuData, setMenuData] = useState({ foto: null, namaMenu: "" });
-  const [waktuData, setWaktuData] = useState({
-    bahan: "", porsi: "", mulaiMasak: "", estSaji: "", distribusi: "",
+  const [menuData, setMenuData] = useState({
+    foto: null,
+    namaMenu: "",
   });
+
+  const [waktuData, setWaktuData] = useState({
+    bahan: "",
+    porsi: "",
+    mulaiMasak: "",
+    estSaji: "",
+    distribusi: "",
+  });
+
   const [sanitasiData, setSanitasiData] = useState({
     apd: false,
     kebersihan: false,
@@ -329,6 +368,7 @@ export default function SubmitFormPage() {
 
   const handleSubmit = () => {
     setLoading(true);
+
     setTimeout(() => {
       setLoading(false);
       navigate("/result/demo-001");
@@ -336,20 +376,28 @@ export default function SubmitFormPage() {
   };
 
   const now = new Date();
-  const timeStr = now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + " WIB";
+
+  const timeStr =
+    now.toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }) + " WIB";
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#EEF7F1] to-gray-50 font-sans antialiased flex flex-col">
-      <NavbarLogin activePage="home" />
+    <div className="min-h-screen bg-gradient-to-b from-[#EEF7F1] to-gray-50 font-sans antialiased flex flex-col overflow-x-hidden">
+      
+      <NavbarLogin activePage="submit" />
 
       <main className="flex-1">
-        <div className="max-w-6xl mx-auto px-6 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+
           {/* Page Header */}
           <div className="mb-8 pt-16">
-            <h1 className="text-4xl font-extrabold text-[#0D3D25] tracking-tight mb-2">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#0D3D25] tracking-tight mb-2 leading-tight">
               Laporan Dapur Harian
             </h1>
-            <p className="text-gray-400 text-sm">
+
+            <p className="text-gray-400 text-sm sm:text-base max-w-2xl leading-relaxed">
               Pastikan setiap sajian memenuhi standar keamanan pangan nasional.
             </p>
           </div>
@@ -359,30 +407,61 @@ export default function SubmitFormPage() {
 
           {/* Step Content */}
           <div className="mb-6">
-            {step === 1 && <StepMenu data={menuData} setData={setMenuData} />}
-            {step === 2 && <StepWaktu data={waktuData} setData={setWaktuData} />}
-            {step === 3 && <StepSanitasi data={sanitasiData} setData={setSanitasiData} />}
+            {step === 1 && (
+              <StepMenu
+                data={menuData}
+                setData={setMenuData}
+              />
+            )}
+
+            {step === 2 && (
+              <StepWaktu
+                data={waktuData}
+                setData={setWaktuData}
+              />
+            )}
+
+            {step === 3 && (
+              <StepSanitasi
+                data={sanitasiData}
+                setData={setSanitasiData}
+              />
+            )}
           </div>
 
           {/* Bottom Action Bar */}
-          <div className="bg-white border border-gray-100 rounded-2xl px-6 py-4 flex items-center justify-between shadow-sm">
+          <div className="bg-white border border-gray-100 rounded-2xl px-4 sm:px-6 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 shadow-sm">
+            
+            {/* Left Info */}
             <div>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
                 {step < 3 ? (
-                  <span className="text-[#1A8A52] font-semibold">DRAFT</span>
+                  <span className="text-[#1A8A52] font-semibold">
+                    DRAFT
+                  </span>
                 ) : (
-                  <span className="text-[#1A8A52] font-semibold">SIAP KIRIM</span>
+                  <span className="text-[#1A8A52] font-semibold">
+                    SIAP KIRIM
+                  </span>
                 )}{" "}
-                <span className="text-gray-300 mx-1">|</span>{" "}
-                <span className="text-gray-400">Terakhir diubah: {timeStr}</span>
+                
+                <span className="text-gray-300 mx-1 hidden sm:inline">
+                  |
+                </span>
+
+                <span className="block sm:inline mt-1 sm:mt-0">
+                  Terakhir diubah: {timeStr}
+                </span>
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            {/* Buttons */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+              
               {step > 1 && (
                 <button
                   onClick={handleBack}
-                  className="text-sm font-semibold text-gray-500 hover:text-[#0D3D25] px-4 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
+                  className="w-full sm:w-auto text-sm font-semibold text-gray-500 hover:text-[#0D3D25] px-5 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
                 >
                   Kembali
                 </button>
@@ -391,7 +470,7 @@ export default function SubmitFormPage() {
               {step < 3 ? (
                 <button
                   onClick={handleNext}
-                  className="flex items-center gap-2 bg-[#0D5C3A] hover:bg-[#0a4a2e] text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-colors"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#0D5C3A] hover:bg-[#0a4a2e] text-white text-sm font-semibold px-6 py-3 rounded-xl transition-colors"
                 >
                   Lanjut
                 </button>
@@ -399,7 +478,7 @@ export default function SubmitFormPage() {
                 <button
                   onClick={handleSubmit}
                   disabled={loading}
-                  className="flex items-center gap-2 bg-[#0D5C3A] hover:bg-[#0a4a2e] text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-all disabled:opacity-60"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#0D5C3A] hover:bg-[#0a4a2e] text-white text-sm font-semibold px-6 py-3 rounded-xl transition-all disabled:opacity-60"
                 >
                   {loading ? (
                     <>
