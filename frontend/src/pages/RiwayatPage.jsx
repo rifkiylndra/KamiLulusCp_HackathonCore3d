@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader,
+  X,
 } from "lucide-react";
 import {
   LineChart,
@@ -20,6 +21,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { useNavigate } from "react-router-dom";
 import NavbarLogin from "../components/layout/NavbarLogin";
 import Footer from "../components/layout/Footer";
 import { 
@@ -27,7 +29,8 @@ import {
   fetchWeeklyTrend, 
   fetchStatusDistribution, 
   fetchSppgLeaderboard,
-  getCurrentSppg
+  getCurrentSppg,
+  API_ENDPOINTS
 } from "../services/api";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -86,9 +89,16 @@ function StatCard({ icon, label, value, badge, badgeColor, danger }) {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function RiwayatPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  
+  // Filter states
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterProvince, setFilterProvince] = useState("all");
+  const [filterScoreMin, setFilterScoreMin] = useState(0);
   
   // Data states
   const [monthlyStats, setMonthlyStats] = useState({});
@@ -96,6 +106,32 @@ export default function RiwayatPage() {
   const [statusDistribution, setStatusDistribution] = useState({ distribution: [], total: 0 });
   const [sppgLeaderboard, setSppgLeaderboard] = useState([]);
   const [error, setError] = useState(null);
+
+  // Handle "Lihat Detail" button - navigate to submissions with BAHAYA filter
+  const handleViewDangerDetails = () => {
+    const currentSppg = getCurrentSppg();
+    if (currentSppg?.id) {
+      // Navigate to a filtered view - you can create a new page or use query params
+      // For now, we'll show an alert with the API endpoint to fetch danger submissions
+      const dangerUrl = `${API_ENDPOINTS.SUBMISSIONS_LIST}?sppg_id=${currentSppg.id}&status=completed`;
+      console.log('Fetching danger submissions from:', dangerUrl);
+      
+      // You can implement a modal or navigate to a detail page
+      alert(`Fitur detail laporan bahaya akan menampilkan ${monthlyStats.bahaya} laporan dengan status BAHAYA.\n\nImplementasi: Buat halaman baru atau modal untuk menampilkan list submission dengan filter status BAHAYA.`);
+    }
+  };
+
+  // Apply filters to leaderboard
+  const applyFilters = () => {
+    setShowFilterModal(false);
+  };
+
+  // Reset filters
+  const resetFilters = () => {
+    setFilterStatus("all");
+    setFilterProvince("all");
+    setFilterScoreMin(0);
+  };
 
   useEffect(() => {
     const fetchRiwayatData = async () => {
@@ -137,11 +173,26 @@ export default function RiwayatPage() {
     fetchRiwayatData();
   }, []);
 
-  const filtered = sppgLeaderboard.filter((sppg) =>
-    sppg.name.toLowerCase().includes(search.toLowerCase()) ||
-    sppg.location.toLowerCase().includes(search.toLowerCase()) ||
-    sppg.province.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = sppgLeaderboard.filter((sppg) => {
+    // Search filter
+    const matchesSearch = sppg.name.toLowerCase().includes(search.toLowerCase()) ||
+      sppg.location.toLowerCase().includes(search.toLowerCase()) ||
+      sppg.province.toLowerCase().includes(search.toLowerCase());
+    
+    // Status filter
+    const matchesStatus = filterStatus === "all" || sppg.status === filterStatus;
+    
+    // Province filter
+    const matchesProvince = filterProvince === "all" || sppg.province === filterProvince;
+    
+    // Score filter
+    const matchesScore = sppg.average_score >= filterScoreMin;
+    
+    return matchesSearch && matchesStatus && matchesProvince && matchesScore;
+  });
+
+  // Get unique provinces for filter dropdown
+  const provinces = [...new Set(sppgLeaderboard.map(sppg => sppg.province))].sort();
 
   const formatDateTime = (dateString) => {
     if (!dateString) return 'Belum ada';
@@ -187,7 +238,10 @@ export default function RiwayatPage() {
                 status BAHAYA. Segera lakukan tindakan korektif!
               </span>
             </div>
-            <button className="shrink-0 bg-white text-red-600 text-xs font-bold px-4 py-2 rounded-full hover:bg-red-50 transition-colors whitespace-nowrap">
+            <button 
+              onClick={handleViewDangerDetails}
+              className="shrink-0 bg-white text-red-600 text-xs font-bold px-4 py-2 rounded-full hover:bg-red-50 transition-colors whitespace-nowrap"
+            >
               Lihat Detail
             </button>
           </div>
@@ -436,7 +490,10 @@ export default function RiwayatPage() {
                     className="pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder-gray-400 outline-none focus:border-[#1A8A52] focus:bg-white transition-all w-52"
                   />
                 </div>
-                <button className="flex items-center gap-2 bg-[#0D3D25] hover:bg-[#0a2e1b] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
+                <button 
+                  onClick={() => setShowFilterModal(true)}
+                  className="flex items-center gap-2 bg-[#0D3D25] hover:bg-[#0a2e1b] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
+                >
                   <SlidersHorizontal className="w-4 h-4" />
                   Filter
                 </button>
@@ -611,6 +668,100 @@ export default function RiwayatPage() {
             </div>
           </div>
         </div>
+
+        {/* ── Filter Modal ── */}
+        {showFilterModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-[#0D3D25]">Filter Leaderboard</h3>
+                <button 
+                  onClick={() => setShowFilterModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Status Filter */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Status SPPG
+                  </label>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 outline-none focus:border-[#1A8A52] focus:bg-white transition-all"
+                  >
+                    <option value="all">Semua Status</option>
+                    <option value="EXCELLENT">Excellent</option>
+                    <option value="GOOD">Good</option>
+                    <option value="FAIR">Fair</option>
+                    <option value="POOR">Poor</option>
+                    <option value="NO_DATA">No Data</option>
+                  </select>
+                </div>
+
+                {/* Province Filter */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Provinsi
+                  </label>
+                  <select
+                    value={filterProvince}
+                    onChange={(e) => setFilterProvince(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 outline-none focus:border-[#1A8A52] focus:bg-white transition-all"
+                  >
+                    <option value="all">Semua Provinsi</option>
+                    {provinces.map((province) => (
+                      <option key={province} value={province}>
+                        {province}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Score Filter */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Skor Minimum: {filterScoreMin}
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="10"
+                    value={filterScoreMin}
+                    onChange={(e) => setFilterScoreMin(Number(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#1A8A52]"
+                  />
+                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>0</span>
+                    <span>50</span>
+                    <span>100</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={resetFilters}
+                  className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-xl transition-colors"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={applyFilters}
+                  className="flex-1 px-4 py-2.5 bg-[#1A8A52] hover:bg-[#0D5C3A] text-white text-sm font-semibold rounded-xl transition-colors"
+                >
+                  Terapkan Filter
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       <Footer />
