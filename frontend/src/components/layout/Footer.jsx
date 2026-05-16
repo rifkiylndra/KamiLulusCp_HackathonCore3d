@@ -1,9 +1,5 @@
-import {
-  Shield,
-  Globe,
-  Mail, 
-  
-} from "lucide-react";
+import { Shield,  Mail } from "lucide-react";
+import { FaInstagram } from "react-icons/fa";
 
 function Footer() {
   return (
@@ -19,16 +15,25 @@ function Footer() {
               <span className="font-bold text-lg">NutriGuard MBG</span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed max-w-xs">
-              Jl. Kebon Sirih No.1, RT.1/RW.7, Kb. Sirih, Kec. Menteng,
-              Kota Jakarta Pusat, Daerah Khusus Ibukota Jakarta 10340
+              Jl. Kebon Sirih No.1, RT.1/RW.7, Kb. Sirih, Kec. Menteng, Kota
+              Jakarta Pusat, Daerah Khusus Ibukota Jakarta 10340
             </p>
             <div className="flex gap-3 mt-5">
-              <button className="w-9 h-9 border border-white/20 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors">
-                <Globe className="w-4 h-4 text-gray-400" />
-              </button>
-              <button className="w-9 h-9 border border-white/20 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors">
+              <a
+                href="https://www.instagram.com/badangizinasional.ri"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-9 h-9 border border-white/20 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"
+              >
+                <FaInstagram className="w-4 h-4 text-gray-400" />
+              </a>
+
+              <a
+                href="mailto:halo@bgn.go.id"
+                className="w-9 h-9 border border-white/20 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"
+              >
                 <Mail className="w-4 h-4 text-gray-400" />
-              </button>
+              </a>
             </div>
           </div>
 
@@ -38,16 +43,25 @@ function Footer() {
               Hubungi Kami
             </h4>
             <ul className="flex flex-col gap-3">
-              {["Bantuan", "Alamat"].map((item) => (
-                <li key={item}>
-                  <a
-                    href="#"
-                    className="text-gray-400 hover:text-white text-sm transition-colors"
-                  >
-                    {item}
-                  </a>
-                </li>
-              ))}
+              <li>
+                <a
+                  href="mailto:halo@bgn.go.id"
+                  className="text-gray-400 hover:text-white text-sm transition-colors"
+                >
+                  Bantuan
+                </a>
+              </li>
+
+              <li>
+                <a
+                  href="https://www.google.com/maps/place/Kementerian+Pertanian+Republik+Indonesia/@-6.2965741,106.8135791,1387m/data=!3m1!1e3!4m6!3m5!1s0x2e69edfdd6a06271:0x126574416be048a3!8m2!3d-6.2969793!4d106.8222265!16s%2Fg%2F12396wj1?entry=ttu&g_ep=EgoyMDI2MDUxMy4wIKXMDSoASAFQAw%3D%3D"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-400 hover:text-white text-sm transition-colors"
+                >
+                  Alamat
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -61,11 +75,11 @@ function Footer() {
                 HOTLINE 24/7
               </p>
               <p className="text-2xl font-extrabold text-white tracking-tight mb-2">
-                1500-NUTRI
+                127
               </p>
               <p className="text-gray-400 text-xs leading-relaxed">
-                Laporan segera jika terjadi kontaminasi silang atau keterlambatan
-                distribusi &gt; 3 jam.
+                Laporan segera jika terjadi kontaminasi silang atau
+                keterlambatan distribusi &gt; 3 jam.
               </p>
             </div>
           </div>
