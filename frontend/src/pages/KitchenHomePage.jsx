@@ -4,7 +4,6 @@ import {
   Camera,
   History,
   CheckCircle,
-  
   ChevronRight,
   AlertTriangle,
   Headphones,
@@ -13,9 +12,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import NavbarLogin from "../components/layout/NavbarLogin";
 import Footer from "../components/layout/Footer";
-
-
-
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function KitchenHomePage() {
@@ -30,13 +26,18 @@ export default function KitchenHomePage() {
   const formatDate = (d) =>
     d.toLocaleDateString("id-ID", {
       weekday: "long",
-      day: "numeric",
+      day: "2-digit",
       month: "long",
       year: "numeric",
     });
 
   const formatTime = (d) =>
-    d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + " WIB";
+    d.toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }) + " WIB";
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans antialiased flex flex-col">
@@ -44,7 +45,6 @@ export default function KitchenHomePage() {
 
       <main className="flex-1">
         <div className="max-w-6xl mx-auto px-6 py-10">
-
           {/* ── Header ── */}
           <div className="pt-16 flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-10">
             <div>
@@ -126,7 +126,9 @@ export default function KitchenHomePage() {
               <span className="bg-[#E6F4EC] text-[#1A8A52] text-xs font-bold px-4 py-1.5 rounded-full border border-[#1A8A52]/20">
                 AMAN
               </span>
-              <p className="text-xs text-gray-400">Terverifikasi pada 23 Mei, 17:30</p>
+              <p className="text-xs text-gray-400">
+                Terverifikasi pada 23 Mei, 17:30
+              </p>
             </div>
           </div>
 

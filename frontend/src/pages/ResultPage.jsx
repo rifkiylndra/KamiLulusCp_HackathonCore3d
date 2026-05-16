@@ -182,7 +182,7 @@ export default function ResultPage() {
       <NavbarLogin activePage="laporan" />
 
       <main className="flex-1">
-        <div className="max-w-4xl mx-auto px-6 py-12 space-y-8 pt-20">
+        <div className="max-w-6xl mx-auto px-6 py-12 space-y-8 pt-20">
           {/* ── Score Hero Card ── */}
           <div className="bg-gradient-to-br from-[#EEF7F1] to-white border border-gray-100 rounded-3xl p-8 shadow-sm">
             <div className="flex items-start justify-between mb-2">
@@ -305,7 +305,7 @@ export default function ResultPage() {
           <div className="flex justify-center pt-2">
             <button
               onClick={() => navigate("/home")}
-              className="flex items-center gap-3 bg-[#0D1F17] hover:bg-[#162d20] text-white font-semibold px-10 py-4 rounded-2xl transition-colors text-sm"
+              className="w-full flex items-center justify-center gap-3 bg-[#0D1F17] hover:bg-[#162d20] text-white font-semibold px-10 py-4 rounded-2xl transition-colors text-sm"
             >
               <ArrowLeft className="w-4 h-4" />
               Kembali ke Home

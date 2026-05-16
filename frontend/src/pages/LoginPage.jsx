@@ -14,7 +14,7 @@ export default function LoginPage() {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      navigate("/dashboard");
+      navigate("/home");
     }, 1200);
   };
 
@@ -22,10 +22,10 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-[#DFF0E8] via-[#EEF7F2] to-[#E8F4F0] flex flex-col items-center justify-center px-4 py-10">
       {/* Logo */}
       <div className="flex items-center gap-2 mb-8">
-        <div className="w-8 h-8 bg-[#0D5C3A] rounded-full flex items-center justify-center">
-          <Shield className="w-4 h-4 text-white" />
+        <div className="w-12 h-12 bg-[#0D5C3A] rounded-full flex items-center justify-center">
+          <Shield className="w-8 h-8 text-white" />
         </div>
-        <span className="font-bold text-[#0D3D25] text-xl tracking-tight">
+        <span className="font-bold text-[#0D3D25] text-2xl tracking-tight">
           NutriGuard <span className="text-[#1A8A52]">MBG</span>
         </span>
       </div>

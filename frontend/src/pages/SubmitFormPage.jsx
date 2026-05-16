@@ -116,12 +116,7 @@ function StepMenu({ data, setData }) {
     <SectionCard
       icon={<Utensils className="w-5 h-5" />}
       title="Identifikasi Menu"
-      badge={
-        <span className="flex items-center gap-1.5 bg-green-50 border border-green-200 text-[#1A8A52] text-xs font-semibold px-3 py-1.5 rounded-full">
-          <Sparkles className="w-3.5 h-3.5" />
-          AI Auto-fill active (Gemini Vision)
-        </span>
-      }
+      
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Upload zone */}
@@ -348,7 +343,7 @@ export default function SubmitFormPage() {
       <NavbarLogin activePage="home" />
 
       <main className="flex-1">
-        <div className="max-w-2xl mx-auto px-6 py-12">
+        <div className="max-w-6xl mx-auto px-6 py-12">
           {/* Page Header */}
           <div className="mb-8 pt-16">
             <h1 className="text-4xl font-extrabold text-[#0D3D25] tracking-tight mb-2">
