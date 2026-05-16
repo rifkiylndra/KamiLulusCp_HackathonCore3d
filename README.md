@@ -1,359 +1,381 @@
-# 🍽️ NutriGuard - School Food Safety & Nutrition Assessment System
+# 🍽️ NutriGuard - Sistem Monitoring Keamanan Pangan SPPG
 
-**Hackathon Backend - Complete Implementation**
-
----
-
-## 📖 Overview
-
-NutriGuard is a comprehensive backend system for assessing school food safety, nutrition quality, and sanitation standards. The system uses AI-powered analysis combined with hard rules and weighted scoring to provide actionable insights for school food service units (SPPG).
-
-### Key Features
-- ✅ **Comprehensive Scoring System** - Nutrition, Safety, Sanitation with hard rules
-- ✅ **AI Integration** - Gemini API for advanced analysis
-- ✅ **Queue-Based Processing** - Asynchronous job handling
-- ✅ **Complete API** - RESTful endpoints for all operations
-- ✅ **Demo Data** - 22 submissions with complete scoring results
-- ✅ **Production Ready** - Error handling, logging, and documentation
+**NutriGuard** adalah sistem monitoring keamanan pangan berbasis AI untuk Satuan Pendidikan Pangan Gizi (SPPG) yang menggunakan Google Gemini AI untuk analisis nutrisi, keamanan, dan sanitasi makanan.
 
 ---
 
-## 🚀 Quick Start
+## 📋 Daftar Isi
 
-### Prerequisites
-- PHP 8.2+
-- MySQL 8.0+
-- Composer
+- [Fitur Utama](#-fitur-utama)
+- [Teknologi](#-teknologi)
+- [Prasyarat](#-prasyarat)
+- [Instalasi](#-instalasi)
+- [Konfigurasi](#-konfigurasi)
+- [Menjalankan Aplikasi](#-menjalankan-aplikasi)
+- [Struktur Project](#-struktur-project)
+- [API Endpoints](#-api-endpoints)
+- [Troubleshooting](#-troubleshooting)
+- [Tim Pengembang](#-tim-pengembang)
 
-### Installation (5 minutes)
+---
+
+## ✨ Fitur Utama
+
+### 🔐 Autentikasi & Manajemen Akun
+- **Register & Login** - Sistem autentikasi untuk SPPG
+- **Multi-Account Support** - Setiap SPPG memiliki data terpisah
+- **Data Filtering** - Data otomatis difilter berdasarkan akun yang login
+
+### 📸 Analisis Menu Makanan
+- **Upload Foto Menu** - Ambil foto langsung dari kamera atau upload file
+- **AI Vision Analysis** - Deteksi otomatis nama menu dan bahan makanan
+- **Form Submission** - Input detail porsi, waktu, dan sanitasi
+
+### 🤖 Penilaian AI Otomatis
+- **Analisis Nutrisi** - Evaluasi kandungan gizi makanan
+- **Analisis Keamanan** - Deteksi potensi bahaya keamanan pangan
+- **Analisis Sanitasi** - Penilaian kebersihan dan higienitas
+- **Scoring System** - Skor 0-100 untuk setiap kategori
+
+### 📊 Dashboard & Laporan
+- **Hasil Scan Terakhir** - Tampilan hasil analisis terbaru
+- **Riwayat Submission** - History semua laporan yang pernah dibuat
+- **Statistik Bulanan** - Total laporan, status aman/perhatian/bahaya
+- **Trend Mingguan** - Grafik perkembangan skor 7 hari terakhir
+- **Distribusi Status** - Pie chart distribusi status penilaian
+- **SPPG Leaderboard** - Ranking nasional semua SPPG
+
+### 🚨 Feedback & Rekomendasi
+- **Immediate Actions** - Tindakan darurat yang harus dilakukan
+- **Tomorrow Improvements** - Perbaikan untuk besok
+- **Routine Notes** - Catatan rutin untuk peningkatan kualitas
+
+---
+
+## 🛠️ Teknologi
+
+### Backend
+- **Laravel 11** - PHP Framework
+- **MySQL** - Database
+- **Google Gemini AI** - AI untuk analisis makanan
+- **Laravel Queue** - Background job processing
+
+### Frontend
+- **React 18** - JavaScript Library
+- **Vite** - Build tool
+- **TailwindCSS** - CSS Framework
+- **React Router** - Routing
+- **Recharts** - Data visualization
+- **Lucide React** - Icons
+
+---
+
+## 📦 Prasyarat
+
+Pastikan sistem Anda sudah terinstall:
+
+- **PHP** >= 8.2
+- **Composer** >= 2.0
+- **Node.js** >= 18.0
+- **npm** atau **yarn**
+- **MySQL** >= 8.0
+- **Git**
+
+---
+
+## 🚀 Instalasi
+
+### 1. Clone Repository
+
 ```bash
-cd backend
-composer install
-cp .env.example .env
-php artisan key:generate
-php artisan migrate
-php artisan db:seed --class=DemoSeeder
-php artisan serve --port=8000
+git clone https://github.com/rifkiylndra/KamiLulusCp_HackathonCore3d.git
+cd KamiLulusCp_HackathonCore3d
 ```
 
-In another terminal:
+### 2. Setup Backend (Laravel)
+
 ```bash
+# Masuk ke folder backend
+cd backend
+
+# Install dependencies
+composer install
+
+# Copy file environment
+copy .env.example .env
+
+# Generate application key
+php artisan key:generate
+
+# Buat database MySQL (via phpMyAdmin atau MySQL CLI)
+# Nama database: nutriguard_db
+
+# Jalankan migrasi database
+php artisan migrate
+
+# Jalankan seeder (opsional - untuk data dummy)
+php artisan db:seed
+
+# Kembali ke root folder
+cd ..
+```
+
+### 3. Setup Frontend (React)
+
+```bash
+# Masuk ke folder frontend
+cd frontend
+
+# Install dependencies
+npm install
+
+# Copy file environment
+copy .env.example .env
+
+# Kembali ke root folder
+cd ..
+```
+
+---
+
+## ⚙️ Konfigurasi
+
+### Backend Configuration (`backend/.env`)
+
+```env
+APP_NAME=NutriGuard
+APP_ENV=local
+APP_KEY=base64:... # Auto-generated
+APP_DEBUG=true
+APP_URL=http://localhost:8000
+
+# Database
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=nutriguard_db
+DB_USERNAME=root
+DB_PASSWORD=
+
+# Google Gemini AI
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# Queue
+QUEUE_CONNECTION=database
+```
+
+**Cara mendapatkan Gemini API Key:**
+1. Kunjungi [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Login dengan akun Google
+3. Klik "Create API Key"
+4. Copy API key dan paste ke `.env`
+
+### Frontend Configuration (`frontend/.env`)
+
+```env
+VITE_API_URL=http://localhost:8000
+```
+
+---
+
+## ▶️ Menjalankan Aplikasi
+
+### Opsi 1: Manual (2 Terminal Terpisah)
+
+**Terminal 1 - Backend:**
+```bash
+cd backend
+php artisan serve
+# Backend berjalan di http://localhost:8000
+```
+
+**Terminal 2 - Frontend:**
+```bash
+cd frontend
+npm run dev
+# Frontend berjalan di http://localhost:5173
+```
+
+### Opsi 2: Queue Worker (Opsional - untuk background jobs)
+
+**Terminal 3 - Queue Worker:**
+```bash
+cd backend
 php artisan queue:work
 ```
 
-### Test the API
-```bash
-curl -X GET "http://127.0.0.1:8000/api/dashboard/stats"
-```
+### Akses Aplikasi
+
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:8000/api
 
 ---
 
-## 📚 Documentation
+## 📁 Struktur Project
 
-| Document | Purpose |
-|----------|---------|
-| **GETTING_STARTED.md** | Quick start guide (5 minutes) |
-| **PROJECT_STATUS_REPORT.md** | Complete project overview |
-| **VERIFICATION_CHECKLIST.md** | Verification steps |
-| **SCORING_ENGINE.md** | Scoring logic documentation |
-| **GEMINI_INTEGRATION.md** | Gemini API integration |
-| **QUICK_START_PHASE6.md** | Quick reference for Phase 6 |
-| **TESTING_GUIDE.md** | Testing guide with examples |
+```
+KamiLulusCp_HackathonCore3d/
+├── backend/                    # Laravel Backend
+│   ├── app/
+│   │   ├── Http/
+│   │   │   ├── Controllers/
+│   │   │   │   └── Api/
+│   │   │   │       ├── AuthController.php
+│   │   │   │       ├── MealSubmissionController.php
+│   │   │   │       ├── DashboardController.php
+│   │   │   │       ├── VisionController.php
+│   │   │   │       └── AiController.php
+│   │   │   ├── Requests/
+│   │   │   └── Resources/
+│   │   ├── Models/
+│   │   │   ├── Sppg.php
+│   │   │   ├── MealSubmission.php
+│   │   │   ├── AiAssessment.php
+│   │   │   └── ...
+│   │   ├── Services/
+│   │   │   ├── GeminiService.php
+│   │   │   ├── ScoringEngine.php
+│   │   │   └── NutriGuardPrompts.php
+│   │   └── Jobs/
+│   │       └── ProcessMealAnalysis.php
+│   ├── database/
+│   │   ├── migrations/
+│   │   └── seeders/
+│   ├── routes/
+│   │   └── api.php
+│   └── .env
+│
+├── frontend/                   # React Frontend
+│   ├── src/
+│   │   ├── components/
+│   │   │   └── layout/
+│   │   │       ├── Navbar.jsx
+│   │   │       ├── NavbarLogin.jsx
+│   │   │       └── Footer.jsx
+│   │   ├── pages/
+│   │   │   ├── LandingPage.jsx
+│   │   │   ├── RegisterPage.jsx
+│   │   │   ├── LoginPage.jsx
+│   │   │   ├── KitchenHomePage.jsx
+│   │   │   ├── SubmitFormPage.jsx
+│   │   │   ├── ResultPage.jsx
+│   │   │   └── RiwayatPage.jsx
+│   │   ├── services/
+│   │   │   └── api.js
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── public/
+│   └── .env
+│
+└── README.md
+```
 
 ---
 
 ## 🔌 API Endpoints
 
-### SPPG Management
-```
-GET    /api/sppg              - List all SPPG
-POST   /api/sppg              - Create SPPG
-GET    /api/sppg/{id}         - Get SPPG details
-PUT    /api/sppg/{id}         - Update SPPG
-DELETE /api/sppg/{id}         - Delete SPPG
-```
+### Authentication
+- `POST /api/auth/register` - Register SPPG baru
+- `POST /api/auth/login` - Login SPPG
+- `POST /api/auth/logout` - Logout
+- `GET /api/auth/me` - Get current user
 
 ### Meal Submissions
-```
-POST   /api/submissions        - Create submission (triggers AI analysis)
-GET    /api/submissions        - List submissions (paginated)
-GET    /api/submissions/{id}   - Get submission details
-GET    /api/submissions/{id}/status - Check submission status
-```
+- `POST /api/submissions` - Submit meal baru
+- `GET /api/submissions` - List submissions (dengan filter)
+- `GET /api/submissions/{id}` - Detail submission
+- `GET /api/submissions/{id}/status` - Status analisis AI
 
 ### Dashboard
-```
-GET    /api/dashboard/stats    - Dashboard statistics
-GET    /api/dashboard/recent-sppg - Recent SPPG data
-```
+- `GET /api/dashboard/monthly-stats` - Statistik bulanan
+- `GET /api/dashboard/weekly-trend` - Trend 7 hari
+- `GET /api/dashboard/status-distribution` - Distribusi status
+- `GET /api/dashboard/sppg-leaderboard` - Leaderboard SPPG
 
-### Scoring Test Endpoints
-```
-GET    /api/scoring-test/perfect              - Perfect submission (AMAN, score 100)
-GET    /api/scoring-test/hard-rule-violation  - Hard rule violation (BAHAYA, score 40)
-GET    /api/scoring-test/poor-nutrition       - Poor nutrition (PERHATIAN, score 68)
-GET    /api/scoring-test/poor-sanitation      - Poor sanitation (BAHAYA, score 45)
-GET    /api/scoring-test/score/{submissionId} - Get score for submission
-GET    /api/scoring-test/list                 - List test submissions
-```
-
----
-
-## 🎯 Scoring System
-
-### Status Levels
-- **AMAN** (Safe) - Score ≥ 75
-- **PERHATIAN** (Attention) - Score 60-74
-- **BAHAYA** (Danger) - Score < 60
-
-### Scoring Weights
-- **Nutrition (40%)** - Menu variety, protein, carbs, vegetables, fruits
-- **Safety (40%)** - Food handling, storage, supplier compliance
-- **Sanitation (20%)** - Hygiene, kitchen cleanliness, APD usage
-
-### Hard Rules
-- Holding time > 4 hours = BAHAYA (immediate action required)
-- APD not used = Safety violation
-- Poor storage = Safety violation
-
----
-
-## 🏗️ Architecture
-
-```
-API Request
-    ↓
-Controller (Validation)
-    ↓
-Create MealSubmission
-    ↓
-Dispatch ProcessMealAnalysis Job
-    ↓
-Queue Worker
-    ├─ Load submission data
-    ├─ Call Gemini API (nutrition analysis)
-    ├─ Call Gemini API (image analysis)
-    ├─ Run Scoring Engine
-    └─ Merge results
-    ↓
-Save to Database
-    ├─ AiAssessment
-    ├─ Violations
-    └─ CorrectiveFeedback
-    ↓
-Update submission status to 'completed'
-    ↓
-Frontend polls status and displays results
-```
-
----
-
-## 📊 Database Schema
-
-### Tables
-- `sppg` - School Food Service Units
-- `meal_submissions` - Meal submission records
-- `menu_items` - Menu ingredients
-- `sanitation_checks` - Sanitation data
-- `ai_assessments` - AI analysis results
-- `violations` - Violations found
-- `corrective_feedbacks` - Corrective actions
-
-### Current Data
-- 10 SPPG in Padang
-- 22 Meal Submissions
-- 21 AI Assessments
-- Complete scoring results
-
----
-
-## 🔧 Configuration
-
-### Environment Variables (.env)
-```env
-# Database
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_DATABASE=nutriguard_mbg
-DB_USERNAME=root
-DB_PASSWORD=
-
-# Gemini API
-GEMINI_API_KEY=your_api_key_here
-
-# Queue
-QUEUE_CONNECTION=database
-
-# Session & Cache
-SESSION_DRIVER=database
-CACHE_STORE=database
-```
-
----
-
-## 🧪 Testing
-
-### Run Unit Tests
-```bash
-php artisan test tests/Unit/ScoringEngineTest.php
-```
-
-### Test API Endpoints
-```bash
-# Perfect submission
-curl -X GET "http://127.0.0.1:8000/api/scoring-test/perfect"
-
-# Hard rule violation
-curl -X GET "http://127.0.0.1:8000/api/scoring-test/hard-rule-violation"
-
-# Poor nutrition
-curl -X GET "http://127.0.0.1:8000/api/scoring-test/poor-nutrition"
-
-# Poor sanitation
-curl -X GET "http://127.0.0.1:8000/api/scoring-test/poor-sanitation"
-```
-
----
-
-## 📁 Project Structure
-
-```
-backend/
-├── app/
-│   ├── DTOs/                    # Data Transfer Objects
-│   ├── Http/
-│   │   ├── Controllers/Api/     # API Controllers
-│   │   └── Requests/            # Form Requests
-│   ├── Jobs/                    # Queue Jobs
-│   ├── Models/                  # Database Models
-│   └── Services/                # Business Logic
-├── database/
-│   ├── factories/               # Model Factories
-│   ├── migrations/              # Database Migrations
-│   └── seeders/                 # Database Seeders
-├── routes/
-│   └── api.php                  # API Routes
-├── tests/
-│   └── Unit/                    # Unit Tests
-├── config/
-│   └── services.php             # Service Configuration
-└── storage/
-    └── logs/                    # Application Logs
-```
-
----
-
-## ✅ Completion Status
-
-| Phase | Task | Status |
-|-------|------|--------|
-| 1-4 | Database, Models, Migrations, Controllers | ✅ Done |
-| 5 | Scoring Engine (Hard Rules, Nutrition/Safety/Sanitation Scores) | ✅ Done |
-| 5+ | Testing Endpoints & Documentation | ✅ Done |
-| 6 | Gemini Integration + Queue Job | ✅ Done |
-| 7 | Demo Seeder & Data Dummy | ✅ Done |
-
----
-
-## 🚀 Deployment
-
-### Production Checklist
-- [ ] Set `APP_ENV=production` in .env
-- [ ] Configure Supervisor for queue:work
-- [ ] Set up error monitoring (Sentry, etc.)
-- [ ] Configure database backups
-- [ ] Set up rate limiting for Gemini API
-- [ ] Configure HTTPS
-- [ ] Set up logging and monitoring
+### Vision Analysis
+- `POST /api/vision/analyze-photo` - Analisis foto untuk deteksi bahan
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Queue jobs not processing
+### Backend Issues
+
+**Error: "SQLSTATE[HY000] [1045] Access denied"**
 ```bash
-php artisan queue:work
-php artisan queue:failed
-php artisan queue:retry all
+# Pastikan kredensial database di .env benar
+# Cek username dan password MySQL
 ```
 
-### Database connection error
+**Error: "Class 'GeminiService' not found"**
 ```bash
-# Check .env configuration
-# Verify MySQL is running
-# Run migrations
-php artisan migrate
-```
-
-### API not responding
-```bash
-php artisan serve --port=8000
-php artisan cache:clear
+# Clear cache dan autoload
 php artisan config:clear
+php artisan cache:clear
+composer dump-autoload
 ```
+
+**Error: "Gemini API Key not configured"**
+```bash
+# Pastikan GEMINI_API_KEY sudah diset di backend/.env
+# Restart server setelah mengubah .env
+```
+
+### Frontend Issues
+
+**Error: "Failed to fetch"**
+```bash
+# Pastikan backend sudah running di http://localhost:8000
+# Cek VITE_API_URL di frontend/.env
+```
+
+**Error: "Module not found"**
+```bash
+# Install ulang dependencies
+cd frontend
+rm -rf node_modules
+npm install
+```
+
+### CORS Issues
+
+Jika ada error CORS, pastikan di `backend/config/cors.php`:
+```php
+'allowed_origins' => ['http://localhost:5173'],
+```
+
+---
+
+## 👥 Tim Pengembang
+
+**Tim Kami Lulus CP - Hackathon Core3D 2026**
+
+- Developer 1
+- Developer 2
+- Developer 3
+
+---
+
+## 📝 Lisensi
+
+Project ini dibuat untuk keperluan Hackathon Core3D 2026.
+
+---
+
+## 🙏 Acknowledgments
+
+- **Google Gemini AI** - AI analysis engine
+- **Laravel** - Backend framework
+- **React** - Frontend library
+- **TailwindCSS** - Styling
+- **Recharts** - Data visualization
 
 ---
 
 ## 📞 Support
 
-For detailed information, refer to:
-- **GETTING_STARTED.md** - Quick start guide
-- **PROJECT_STATUS_REPORT.md** - Complete project overview
-- **VERIFICATION_CHECKLIST.md** - Verification steps
-- **SCORING_ENGINE.md** - Scoring logic
-- **GEMINI_INTEGRATION.md** - Gemini integration
-- **QUICK_START_PHASE6.md** - Quick reference
-- **TESTING_GUIDE.md** - Testing guide
+Jika ada pertanyaan atau issue, silakan buat issue di GitHub repository atau hubungi tim pengembang.
 
 ---
 
-## 🎯 Next Steps
-
-### For Frontend Integration
-1. Use the API endpoints documented above
-2. Poll `/api/submissions/{id}/status` for processing status
-3. Display results from `/api/submissions/{id}` when completed
-4. Show violations and corrective feedback to users
-
-### For Further Development
-1. Add authentication (Laravel Sanctum)
-2. Add authorization (Laravel Policies)
-3. Add API rate limiting
-4. Add request logging
-5. Add performance monitoring
-
----
-
-## 📝 License
-
-This project is part of the Core3D 2026 Hackathon.
-
----
-
-## 👥 Team
-
-**NutriGuard Development Team**
-
----
-
-## 🎉 Status
-
-✅ **FULLY OPERATIONAL & PRODUCTION READY**
-
-All 7 phases completed successfully. The system is ready for:
-- Frontend integration
-- Production deployment
-- Further development
-- Testing with real data
-
----
-
-## 📅 Last Updated
-
-May 16, 2026
-
----
-
-**Happy coding!** 🚀
-
-For quick start, see **GETTING_STARTED.md**
+**Made with ❤️ by Tim Kami Lulus CP**
