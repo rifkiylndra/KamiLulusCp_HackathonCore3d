@@ -69,7 +69,7 @@ export default function RegisterPage() {
           <Shield className="w-6 h-6 text-white" />
         </div>
         <span className="font-bold text-[#0D3D25] text-xl tracking-tight">
-          NutriGuard <span className="text-[#1A8A52]">MBG</span>
+          NutriGuard
         </span>
       </div>
 

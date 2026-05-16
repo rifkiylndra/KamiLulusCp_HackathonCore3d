@@ -25,7 +25,7 @@ function Navbar() {
             <Shield className="w-8 h-8 text-white" />
           </div>
           <span className="font-bold text-[#0D3D25] text-2xl tracking-tight">
-            NutriGuard <span className="text-[#1A8A52]">MBG</span>
+            NutriGuard 
           </span>
         </div>
 

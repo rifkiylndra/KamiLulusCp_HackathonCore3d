@@ -328,7 +328,7 @@ export default function ResultPage() {
             </div>
 
             <p className="text-gray-400 text-xs md:text-sm mt-3 mb-6 md:mb-8">
-              Hasil analisis sistem cerdas NutriGuard MBG berbasis visi komputer.
+              Hasil analisis sistem cerdas NutriGuard berbasis visi komputer.
             </p>
 
             {/* SCORE BARS */}

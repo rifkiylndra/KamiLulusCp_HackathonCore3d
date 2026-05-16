@@ -12,7 +12,7 @@ function Footer() {
               <div className="w-7 h-7 bg-[#1A8A52] rounded-full flex items-center justify-center">
                 <Shield className="w-3.5 h-3.5 text-white" />
               </div>
-              <span className="font-bold text-lg">NutriGuard MBG</span>
+              <span className="font-bold text-lg">NutriGuard</span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed max-w-xs">
               Jl. Kebon Sirih No.1, RT.1/RW.7, Kb. Sirih, Kec. Menteng, Kota
@@ -88,7 +88,7 @@ function Footer() {
         {/* Bottom bar */}
         <div className="pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-gray-500 text-xs">
-            © 2026 NutriGuard MBG. Teknologi Pengawasan Pangan Nasional.
+            © 2026 NutriGuard. Teknologi Pengawasan Pangan Nasional.
           </p>
           <div className="flex gap-6">
             {["Kebijakan Privasi", "Syarat & Ketentuan"].map((item) => (

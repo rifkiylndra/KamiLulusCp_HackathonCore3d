@@ -48,7 +48,7 @@ function NavbarLogin() {
           </div>
 
           <span className="font-bold text-[#0D3D25] text-lg tracking-tight">
-            NutriGuard <span className="text-[#1A8A52]">MBG</span>
+            NutriGuard 
           </span>
         </Link>
 
