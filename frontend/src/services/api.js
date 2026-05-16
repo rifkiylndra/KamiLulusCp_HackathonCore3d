@@ -35,6 +35,12 @@ export const submitMeal = async (formData) => {
       method: 'POST',
       body: formData,
     });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `HTTP ${response.status}`);
+    }
+    
     const data = await response.json();
     if (data.success) {
       return data.data;

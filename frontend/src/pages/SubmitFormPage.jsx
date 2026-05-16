@@ -14,6 +14,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import NavbarLogin from "../components/layout/NavbarLogin";
 import Footer from "../components/layout/Footer";
+import { submitMeal, pollSubmissionStatus } from "../services/api";
 
 // ── Step Indicator ────────────────────────────────────────────────────────────
 function StepIndicator({ current }) {
@@ -366,13 +367,115 @@ export default function SubmitFormPage() {
     if (step > 1) setStep((s) => s - 1);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setLoading(true);
 
-    setTimeout(() => {
+    try {
+      // Validate required fields
+      if (!menuData.namaMenu.trim()) {
+        throw new Error('Nama menu harus diisi');
+      }
+      if (!waktuData.bahan.trim()) {
+        throw new Error('Daftar bahan harus diisi');
+      }
+      if (!waktuData.porsi) {
+        throw new Error('Total porsi harus diisi');
+      }
+      if (!waktuData.mulaiMasak) {
+        throw new Error('Waktu mulai masak harus diisi');
+      }
+      if (!waktuData.estSaji) {
+        throw new Error('Estimasi waktu saji harus diisi');
+      }
+
+      // Create FormData object with all form fields in backend format
+      const formData = new FormData();
+      
+      // Required fields
+      formData.append('sppg_id', '1'); // Default to first SPPG, can be changed later
+      formData.append('menu_name', menuData.namaMenu);
+      formData.append('portion_count', waktuData.porsi);
+      
+      // Image
+      if (menuData.foto) {
+        formData.append('image', menuData.foto);
+      }
+      
+      // Times - convert to ISO format with today's date
+      const today = new Date().toISOString().split('T')[0];
+      formData.append('cook_start_at', `${today}T${waktuData.mulaiMasak}:00`);
+      formData.append('serve_planned_at', `${today}T${waktuData.estSaji}:00`);
+      if (waktuData.distribusi) {
+        formData.append('distribute_at', `${today}T${waktuData.distribusi}:00`);
+      }
+      
+      // Parse ingredients from bahan text (simple parsing)
+      const ingredients = waktuData.bahan
+        .split('\n')
+        .filter(line => line.trim())
+        .map((line, idx) => ({
+          ingredient_name: line.trim(),
+          quantity_gram: 100, // Default quantity
+          category: idx % 5 === 0 ? 'protein' : idx % 5 === 1 ? 'karbohidrat' : idx % 5 === 2 ? 'sayur' : idx % 5 === 3 ? 'lemak' : 'lainnya',
+        }));
+      
+      if (ingredients.length === 0) {
+        throw new Error('Minimal harus ada 1 bahan');
+      }
+      
+      // Add ingredients to FormData
+      ingredients.forEach((ing, idx) => {
+        formData.append(`ingredients[${idx}][ingredient_name]`, ing.ingredient_name);
+        formData.append(`ingredients[${idx}][quantity_gram]`, ing.quantity_gram);
+        formData.append(`ingredients[${idx}][category]`, ing.category);
+      });
+      
+      // Sanitation data
+      formData.append('sanitation[apd_used]', sanitasiData.apd ? '1' : '0');
+      formData.append('sanitation[kitchen_cleaned]', sanitasiData.kebersihan ? '1' : '0');
+      
+      // Map kondisiPenyimpanan to backend format
+      const storageMap = {
+        'Kulkas (2°C - 5°C)': 'kulkas',
+        'Freezer (-18°C)': 'freezer',
+        'Suhu Ruang': 'suhu_ruang',
+        'Tidak Disimpan': 'suhu_ruang',
+      };
+      formData.append('sanitation[storage_type]', storageMap[sanitasiData.kondisiPenyimpanan] || 'kulkas');
+      
+      // Map kesegaran to backend format
+      const conditionMap = {
+        'Baik & Segar': 'baik',
+        'Cukup Baik': 'baik',
+        'Perlu Pengecekan': 'rusak',
+        'Tidak Layak': 'mencurigakan',
+      };
+      formData.append('sanitation[ingredient_condition]', conditionMap[sanitasiData.kesegaran] || 'baik');
+      
+      // Map sumberBahan to backend format
+      const supplierMap = {
+        'Supplier Resmi MBG': 'resmi',
+        'Pasar Lokal': 'pasar',
+        'Petani Langsung': 'lainnya',
+        'Campuran': 'lainnya',
+      };
+      formData.append('sanitation[supplier_source]', supplierMap[sanitasiData.sumberBahan] || 'resmi');
+
+      // Submit meal to backend
+      const submissionData = await submitMeal(formData);
+      const submissionId = submissionData.submission_id;
+
+      // Poll for completion
+      await pollSubmissionStatus(submissionId);
+
+      // Navigate to result page with actual submission ID
       setLoading(false);
-      navigate("/result/demo-001");
-    }, 1800);
+      navigate(`/result/${submissionId}`);
+    } catch (error) {
+      setLoading(false);
+      alert(`Terjadi kesalahan: ${error.message}`);
+      console.error('Submission error:', error);
+    }
   };
 
   const now = new Date();
