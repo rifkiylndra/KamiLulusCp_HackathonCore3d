@@ -8,19 +8,59 @@ import {
   AlertTriangle,
   Headphones,
   Calendar,
+  Loader,
+  Clock,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import NavbarLogin from "../components/layout/NavbarLogin";
 import Footer from "../components/layout/Footer";
+import { fetchLatestResult, fetchRecentSubmissions, fetchDashboardStats, getCurrentSppg } from "../services/api";
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function KitchenHomePage() {
   const navigate = useNavigate();
   const [now, setNow] = useState(new Date());
+  const [latestResult, setLatestResult] = useState(null);
+  const [recentSubmissions, setRecentSubmissions] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [currentSppg, setCurrentSppg] = useState(null);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    // Get current SPPG from localStorage
+    const sppg = getCurrentSppg();
+    setCurrentSppg(sppg);
+
+    const fetchHomeData = async () => {
+      try {
+        setLoading(true);
+        
+        // Get SPPG ID for filtering
+        const sppgId = sppg?.id || null;
+        
+        // Fetch data in parallel
+        const [latest, recent, stats] = await Promise.all([
+          fetchLatestResult(sppgId),
+          fetchRecentSubmissions(3, sppgId),
+          fetchDashboardStats()
+        ]);
+        
+        setLatestResult(latest);
+        setRecentSubmissions(recent);
+        setDashboardStats(stats);
+      } catch (error) {
+        console.error('Error fetching home data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHomeData();
   }, []);
 
   const formatDate = (d) =>
@@ -39,6 +79,45 @@ export default function KitchenHomePage() {
       hour12: false,
     }) + " WIB";
 
+  const formatDateTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const getStatusColor = (status) => {
+    switch (status?.toUpperCase()) {
+      case 'AMAN':
+        return {
+          bg: 'bg-[#E6F4EC]',
+          text: 'text-[#1A8A52]',
+          border: 'border-[#1A8A52]/20'
+        };
+      case 'BAHAYA':
+        return {
+          bg: 'bg-red-50',
+          text: 'text-red-600',
+          border: 'border-red-200'
+        };
+      case 'PERHATIAN':
+        return {
+          bg: 'bg-amber-50',
+          text: 'text-amber-600',
+          border: 'border-amber-200'
+        };
+      default:
+        return {
+          bg: 'bg-gray-50',
+          text: 'text-gray-600',
+          border: 'border-gray-200'
+        };
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans antialiased flex flex-col overflow-x-hidden">
       <NavbarLogin />
@@ -52,11 +131,12 @@ export default function KitchenHomePage() {
             {/* Left */}
             <div className="w-full">
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#0D3D25] leading-tight mb-2">
-                Selamat Datang, SPPG Padang 01
+                Selamat Datang, {currentSppg ? currentSppg.name : 'SPPG'}
               </h1>
 
               <p className="text-gray-400 text-sm sm:text-base max-w-2xl">
                 Pantau kelayakan gizi dan keamanan dapur Anda hari ini
+                {currentSppg && currentSppg.location && ` - ${currentSppg.location}`}
               </p>
             </div>
 
@@ -124,40 +204,69 @@ export default function KitchenHomePage() {
           </div>
 
           {/* ── Last Result Banner ── */}
-          <div className="bg-white border border-gray-100 rounded-2xl px-4 sm:px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-5 shadow-sm mb-10 sm:mb-12">
-            
-            {/* Left */}
-            <div className="flex items-start sm:items-center gap-4">
-              <div className="w-11 h-11 bg-[#E6F4EC] rounded-full flex items-center justify-center shrink-0">
-                <CheckCircle className="w-6 h-6 text-[#1A8A52]" />
+          {loading ? (
+            <div className="bg-white border border-gray-100 rounded-2xl px-4 sm:px-6 py-8 flex items-center justify-center shadow-sm mb-10 sm:mb-12">
+              <div className="flex items-center gap-3">
+                <Loader className="w-5 h-5 text-[#1A8A52] animate-spin" />
+                <p className="text-gray-600">Memuat data terbaru...</p>
+              </div>
+            </div>
+          ) : latestResult && latestResult.result ? (
+            <div className="bg-white border border-gray-100 rounded-2xl px-4 sm:px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-5 shadow-sm mb-10 sm:mb-12">
+              
+              {/* Left */}
+              <div className="flex items-start sm:items-center gap-4">
+                <div className={`w-11 h-11 ${getStatusColor(latestResult.result.assessment_status).bg} rounded-full flex items-center justify-center shrink-0`}>
+                  <CheckCircle className={`w-6 h-6 ${getStatusColor(latestResult.result.assessment_status).text}`} />
+                </div>
+
+                <div>
+                  <p className="text-[10px] sm:text-xs text-gray-400 font-medium uppercase tracking-wider mb-1">
+                    Hasil Terakhir
+                  </p>
+
+                  <p className="text-base sm:text-lg font-bold text-[#0D3D25] leading-snug">
+                    {latestResult.result.menu_name || 'Menu Terbaru'}:{" "}
+                    <span className={getStatusColor(latestResult.result.assessment_status).text}>
+                      {Math.round(latestResult.result.final_score || 0)}/100
+                    </span>
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <p className="text-[10px] sm:text-xs text-gray-400 font-medium uppercase tracking-wider mb-1">
-                  Hasil Terakhir
-                </p>
+              {/* Right */}
+              <div className="flex flex-col md:items-end gap-2">
+                <span className={`${getStatusColor(latestResult.result.assessment_status).bg} ${getStatusColor(latestResult.result.assessment_status).text} text-xs font-bold px-4 py-1.5 rounded-full border ${getStatusColor(latestResult.result.assessment_status).border} w-fit`}>
+                  {latestResult.result.assessment_status || 'PENDING'}
+                </span>
 
-                <p className="text-base sm:text-lg font-bold text-[#0D3D25] leading-snug">
-                  Laporan Kemarin:{" "}
-                  <span className="text-[#1A8A52]">92/100</span>
+                <p className="text-xs text-gray-400">
+                  Terverifikasi pada {formatDateTime(latestResult.created_at)}
                 </p>
               </div>
             </div>
-
-            {/* Right */}
-            <div className="flex flex-col md:items-end gap-2">
-              <span className="bg-[#E6F4EC] text-[#1A8A52] text-xs font-bold px-4 py-1.5 rounded-full border border-[#1A8A52]/20 w-fit">
-                AMAN
-              </span>
-
-              <p className="text-xs text-gray-400">
-                Terverifikasi pada 23 Mei, 17:30
-              </p>
+          ) : (
+            <div className="bg-white border border-gray-100 rounded-2xl px-4 sm:px-6 py-8 flex flex-col items-center justify-center gap-3 shadow-sm mb-10 sm:mb-12">
+              <Clock className="w-8 h-8 text-gray-300" />
+              <div className="text-center">
+                <p className="text-base font-semibold text-gray-600 mb-1">
+                  Belum Ada Laporan
+                </p>
+                <p className="text-sm text-gray-400">
+                  Buat laporan pertama Anda untuk melihat hasil analisis
+                </p>
+              </div>
+              <button
+                onClick={() => navigate("/submit")}
+                className="mt-2 bg-[#0D5C3A] hover:bg-[#0a4a2e] text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
+              >
+                Buat Laporan
+              </button>
             </div>
-          </div>
+          )}
 
           {/* ── Info Tiles ── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6 mb-10">
             {[
               {
                 icon: <Shield className="w-5 h-5 text-[#1A8A52]" />,
@@ -191,6 +300,70 @@ export default function KitchenHomePage() {
               </div>
             ))}
           </div>
+
+          {/* ── Recent Submissions ── */}
+          {!loading && recentSubmissions.length > 0 && (
+            <div className="bg-white border border-gray-100 rounded-2xl p-5 sm:p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-lg sm:text-xl font-bold text-[#0D3D25]">
+                  Riwayat Terbaru
+                </h2>
+                <button
+                  onClick={() => navigate("/riwayat")}
+                  className="text-[#1A8A52] hover:text-[#0D5C3A] text-sm font-semibold flex items-center gap-1 transition-colors"
+                >
+                  Lihat Semua
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {recentSubmissions.map((submission) => (
+                  <div
+                    key={submission.id}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/result/${submission.id}`)}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 ${getStatusColor(submission.status).bg} rounded-full flex items-center justify-center shrink-0`}>
+                        {submission.status === 'completed' ? (
+                          <CheckCircle className={`w-5 h-5 ${getStatusColor(submission.status).text}`} />
+                        ) : submission.status === 'processing' ? (
+                          <Loader className="w-5 h-5 text-blue-500 animate-spin" />
+                        ) : (
+                          <Clock className="w-5 h-5 text-gray-400" />
+                        )}
+                      </div>
+
+                      <div>
+                        <p className="font-semibold text-[#0D3D25] text-sm">
+                          {submission.menu_name || `Submission #${submission.id}`}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {formatDateTime(submission.created_at)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {submission.status === 'completed' && submission.final_score && (
+                        <span className="text-sm font-bold text-[#0D3D25]">
+                          {Math.round(submission.final_score)}/100
+                        </span>
+                      )}
+                      
+                      <span className={`${getStatusColor(submission.status).bg} ${getStatusColor(submission.status).text} text-xs font-bold px-3 py-1 rounded-full border ${getStatusColor(submission.status).border}`}>
+                        {submission.status === 'completed' ? 'SELESAI' : 
+                         submission.status === 'processing' ? 'PROSES' : 
+                         submission.status === 'pending' ? 'PENDING' : 
+                         submission.status?.toUpperCase() || 'UNKNOWN'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
         </div>
       </main>

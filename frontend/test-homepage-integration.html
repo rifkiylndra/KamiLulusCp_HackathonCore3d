@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test HomePage Integration</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+    </style>
+</head>
+<body>
+    <h1>HomePage Backend Integration Test</h1>
+    
+    <div id="results"></div>
+    
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        const resultsDiv = document.getElementById('results');
+        
+        function addResult(title, status, data) {
+            const div = document.createElement('div');
+            div.className = `result ${status}`;
+            div.innerHTML = `
+                <h3>${title}</h3>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+            resultsDiv.appendChild(div);
+        }
+        
+        async function testAPI() {
+            // Test 1: Get recent submissions
+            try {
+                addResult('Testing Recent Submissions...', 'loading', 'Fetching...');
+                const response = await fetch(`${API_BASE}/api/submissions?limit=3`);
+                const data = await response.json();
+                addResult('Recent Submissions', 'success', data);
+            } catch (error) {
+                addResult('Recent Submissions', 'error', error.message);
+            }
+            
+            // Test 2: Get latest completed submission
+            try {
+                addResult('Testing Latest Result...', 'loading', 'Fetching...');
+                const response = await fetch(`${API_BASE}/api/submissions?status=completed&limit=1`);
+                const data = await response.json();
+                
+                if (data.data && data.data.length > 0) {
+                    const submission = data.data[0];
+                    // Get full result details
+                    const statusResponse = await fetch(`${API_BASE}/api/submissions/${submission.id}/status`);
+                    const statusData = await statusResponse.json();
+                    addResult('Latest Result', 'success', statusData);
+                } else {
+                    addResult('Latest Result', 'error', 'No completed submissions found');
+                }
+            } catch (error) {
+                addResult('Latest Result', 'error', error.message);
+            }
+            
+            // Test 3: Dashboard stats
+            try {
+                addResult('Testing Dashboard Stats...', 'loading', 'Fetching...');
+                const response = await fetch(`${API_BASE}/api/dashboard/stats`);
+                const data = await response.json();
+                addResult('Dashboard Stats', 'success', data);
+            } catch (error) {
+                addResult('Dashboard Stats', 'error', error.message);
+            }
+        }
+        
+        testAPI();
+    </script>
+</body>
+</html>
+</script>
+</body>
+</html>

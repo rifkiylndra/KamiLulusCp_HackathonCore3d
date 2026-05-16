@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Shield, Eye, EyeOff } from "lucide-react";
+import { Shield, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { loginSppg } from "../services/api";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -10,7 +11,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
@@ -32,20 +33,22 @@ export default function LoginPage() {
       return;
     }
 
-    // Password minimum length
-    if (password.length < 6) {
-      setError("Kata sandi minimal 6 karakter");
-      return;
-    }
-
     setLoading(true);
     
-    // TODO: Call actual login API
-    // For now, simulate login
-    setTimeout(() => {
+    try {
+      const result = await loginSppg(email, password);
+      
+      if (result.success) {
+        // Data SPPG sudah disimpan di localStorage oleh loginSppg()
+        navigate("/home");
+      } else {
+        setError(result.message || "Login gagal. Silakan coba lagi.");
+      }
+    } catch (err) {
+      setError(err.message || "Terjadi kesalahan. Silakan coba lagi.");
+    } finally {
       setLoading(false);
-      navigate("/home");
-    }, 1200);
+    }
   };
 
   return (
@@ -81,11 +84,9 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-white text-xs font-bold">!</span>
-              </div>
-              <p className="text-sm text-red-600 font-medium">{error}</p>
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+              <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
 
@@ -99,7 +100,9 @@ export default function LoginPage() {
               placeholder="nama@instansi.go.id"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#F0F7F3] border border-transparent focus:border-[#1A8A52] focus:bg-white rounded-2xl px-4 py-3 text-sm text-gray-700 placeholder-gray-400 outline-none transition-all"
+              required
+              disabled={loading}
+              className="w-full bg-[#F0F7F3] border border-transparent focus:border-[#1A8A52] focus:bg-white rounded-2xl px-4 py-3 text-sm text-gray-700 placeholder-gray-400 outline-none transition-all disabled:opacity-60"
             />
           </div>
 
@@ -122,12 +125,15 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-[#F0F7F3] border border-transparent focus:border-[#1A8A52] focus:bg-white rounded-2xl px-4 py-3 text-sm text-gray-700 placeholder-gray-400 outline-none transition-all pr-11"
+                required
+                disabled={loading}
+                className="w-full bg-[#F0F7F3] border border-transparent focus:border-[#1A8A52] focus:bg-white rounded-2xl px-4 py-3 text-sm text-gray-700 placeholder-gray-400 outline-none transition-all pr-11 disabled:opacity-60"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                disabled={loading}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
               >
                 {showPassword ? (
                   <EyeOff className="w-4 h-4" />
@@ -142,11 +148,22 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading || !email.trim() || !password.trim()}
-            className="w-full border-2 border-[#1A8A52] text-[#1A8A52] hover:bg-[#1A8A52] hover:text-white font-semibold py-3 rounded-2xl transition-all duration-200 mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-[#0D5C3A] hover:bg-[#0a4a2e] text-white font-semibold py-3 rounded-2xl transition-all duration-200 mt-1 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? "Memproses..." : "Login"}
           </button>
         </form>
+
+        {/* Register link */}
+        <p className="text-center text-sm text-gray-400 mt-5">
+          Belum punya akun?{" "}
+          <a
+            href="/register"
+            className="text-[#1A8A52] font-semibold hover:underline"
+          >
+            Daftar di sini
+          </a>
+        </p>
 
         {/* Footer note */}
         <p className="text-center text-gray-400 text-xs mt-7 leading-relaxed">

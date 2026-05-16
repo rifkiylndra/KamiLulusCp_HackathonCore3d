@@ -78,11 +78,33 @@ class MealSubmissionController extends Controller
         }
     }
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $submissions = MealSubmission::with(['sppg', 'aiAssessment'])
-            ->latest()
-            ->paginate(15);
+        $query = MealSubmission::with(['sppg', 'aiAssessment']);
+
+        // Filter by SPPG ID
+        if ($request->has('sppg_id')) {
+            $query->where('sppg_id', $request->sppg_id);
+        }
+
+        // Filter by status
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Limit results
+        if ($request->has('limit')) {
+            $limit = min((int)$request->limit, 50); // Max 50 items
+            $submissions = $query->latest()->limit($limit)->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $submissions,
+            ]);
+        }
+
+        // Default pagination
+        $submissions = $query->latest()->paginate(15);
 
         return response()->json([
             'success' => true,

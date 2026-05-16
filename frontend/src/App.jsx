@@ -5,6 +5,7 @@ import KitchenHomePage from "./pages/KitchenHomePage";
 import RiwayatPage from "./pages/RiwayatPage";
 import SubmitFormPage from "./pages/SubmitFormPage";
 import ResultPage from "./pages/ResultPage";
+import RegisterPage from "./pages/RegisterPage";
 
 
 
@@ -16,6 +17,8 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
 
+<Route path="/register" element={<RegisterPage />} />
+      
       <Route path="/home" element={<KitchenHomePage />} />
       <Route path="/riwayat" element={<RiwayatPage />} />
       <Route path="/submit" element={<SubmitFormPage />} />

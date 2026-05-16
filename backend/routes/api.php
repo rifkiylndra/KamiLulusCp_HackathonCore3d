@@ -5,7 +5,14 @@ use App\Http\Controllers\Api\MealSubmissionController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\SppgController;
 use App\Http\Controllers\Api\ScoringTestController;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\VisionController;
+
+// Authentication routes
+Route::post('/auth/register', [AuthController::class, 'register']);
+Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/logout', [AuthController::class, 'logout']);
+Route::get('/auth/me', [AuthController::class, 'me']);
 
 // Vision (analisis foto — doVision app.js)
 Route::post('/vision/analyze-photo', [VisionController::class, 'analyzePhoto']);
@@ -46,6 +53,12 @@ Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
 Route::get('/dashboard/recent-sppg', [DashboardController::class, 'recentSppg']);
 Route::get('/dashboard/sppg-stats', [DashboardController::class, 'sppgStats']);
 Route::get('/dashboard/top-violations', [DashboardController::class, 'topViolations']);
+
+// RiwayatPage endpoints
+Route::get('/dashboard/monthly-stats', [DashboardController::class, 'monthlyStats']);
+Route::get('/dashboard/weekly-trend', [DashboardController::class, 'weeklyTrend']);
+Route::get('/dashboard/status-distribution', [DashboardController::class, 'statusDistribution']);
+Route::get('/dashboard/sppg-leaderboard', [DashboardController::class, 'sppgLeaderboard']);
 
 // Scoring Test Endpoints
 Route::prefix('scoring-test')->group(function () {
