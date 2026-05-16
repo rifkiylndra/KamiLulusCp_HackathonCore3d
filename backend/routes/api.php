@@ -5,6 +5,10 @@ use App\Http\Controllers\Api\MealSubmissionController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\SppgController;
 use App\Http\Controllers\Api\ScoringTestController;
+use App\Http\Controllers\Api\VisionController;
+
+// Vision (analisis foto — doVision app.js)
+Route::post('/vision/analyze-photo', [VisionController::class, 'analyzePhoto']);
 
 // SPPG
 Route::apiResource('sppg', SppgController::class);

@@ -4,8 +4,8 @@ namespace App\Jobs;
 
 use App\Models\AiAssessment;
 use App\Models\MealSubmission;
-use App\Services\GeminiResponseParser;
 use App\Services\GeminiService;
+use App\Services\NutriGuardPrompts;
 use App\Services\ScoringEngine;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
@@ -14,169 +14,152 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ProcessMealAnalysis implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    private MealSubmission $submission;
-    private int $timeout = 300; // 5 minutes
+    public int $tries = 2;
 
-    public function __construct(MealSubmission $submission)
-    {
-        $this->submission = $submission;
+    public int $timeout = 60;
+
+    public function __construct(
+        private MealSubmission $submission
+    ) {
+        $this->onQueue(config('services.gemini.queue', 'ai-processing'));
     }
 
-    /**
-     * Execute the job
-     */
-    public function handle(
-        GeminiService $geminiService,
-        ScoringEngine $scoringEngine
-    ): void {
+    public function handle(GeminiService $geminiService, ScoringEngine $scoringEngine): void
+    {
+        $started = microtime(true);
+
         try {
-            Log::info('Processing meal analysis', [
-                'submission_id' => $this->submission->id,
-            ]);
+            $this->submission->update(['status' => 'processing']);
+            $this->submission->load(['menuItems', 'sanitationCheck', 'sppg']);
 
-            // Load relationships
-            $this->submission->load('menuItems', 'sanitationCheck', 'sppg');
+            $geminiNutrition = [];
+            $aiAssessment = null;
 
-            // Step 1: Get Gemini analysis
-            $geminiAnalysis = $this->getGeminiAnalysis($geminiService);
+            if ($geminiService->isConfigured()) {
+                try {
+                    $geminiNutrition = $geminiService->analyzeNutrition($this->submission);
+                } catch (\Throwable $e) {
+                    Log::channel('gemini')->warning('Nutrition analysis skipped', ['error' => $e->getMessage()]);
+                }
 
-            // Step 2: Run Scoring Engine
-            $scoringResult = $scoringEngine->calculateScore($this->submission);
+                try {
+                    $aiAssessment = $geminiService->analyzeSubmissionAssessment($this->submission);
+                } catch (\Throwable $e) {
+                    Log::channel('gemini')->warning('Full assessment skipped', ['error' => $e->getMessage()]);
+                }
+            }
 
-            // Step 3: Merge results
-            $finalResult = $this->mergeResults($geminiAnalysis, $scoringResult);
+            $engineResult = $scoringEngine->calculate($geminiNutrition, $this->submission);
+            $final = $this->mergeResults($engineResult, $aiAssessment, $geminiNutrition);
 
-            // Step 4: Save to database
-            $this->saveResults($finalResult);
+            $elapsed = (int) round((microtime(true) - $started) * 1000);
+            $final['processing_time_ms'] = $elapsed;
 
-            // Step 5: Update submission status
+            $this->saveResults($final);
             $this->submission->update(['status' => 'completed']);
 
             Log::info('Meal analysis completed', [
                 'submission_id' => $this->submission->id,
-                'final_score' => $finalResult['final_score'],
-                'status' => $finalResult['status'],
+                'final_score' => $final['final_score'],
+                'status' => $final['status'],
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Meal analysis failed', [
                 'submission_id' => $this->submission->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
             ]);
-
             $this->submission->update(['status' => 'failed']);
             throw $e;
         }
     }
 
-    /**
-     * Get Gemini analysis
-     */
-    private function getGeminiAnalysis(GeminiService $geminiService): array
+    private function mergeResults($engineResult, ?array $aiAssessment, array $geminiNutrition): array
     {
-        $menuItems = $this->submission->menuItems->map(fn($item) => [
-            'ingredient_name' => $item->ingredient_name,
-            'quantity_gram' => $item->quantity_gram,
-            'category' => $item->category,
-        ])->toArray();
+        $nutrition = $engineResult->nutritionScore;
+        $safety = $engineResult->safetyScore;
+        $sanitation = $engineResult->sanitationScore;
+        $violations = $engineResult->violations;
+        $feedback = $engineResult->correctiveFeedback;
+        $status = $engineResult->status;
+        $immediate = $engineResult->immediateActionRequired;
 
-        $sanitationData = $this->submission->sanitationCheck ? [
-            'apd_used' => $this->submission->sanitationCheck->apd_used ? 'Ya' : 'Tidak',
-            'kitchen_cleaned' => $this->submission->sanitationCheck->kitchen_cleaned ? 'Ya' : 'Tidak',
-            'storage_type' => $this->submission->sanitationCheck->storage_type,
-            'ingredient_condition' => $this->submission->sanitationCheck->ingredient_condition,
-            'supplier_source' => $this->submission->sanitationCheck->supplier_source,
-        ] : [];
+        if ($aiAssessment) {
+            $nutrition = $aiAssessment['nutrition_score'] ?: $nutrition;
+            $safety = $aiAssessment['safety_score'] ?: $safety;
+            $sanitation = $aiAssessment['sanitation_score'] ?: $sanitation;
 
-        // Call Gemini for nutrition analysis
-        $nutritionResponse = $geminiService->analyzeNutrition($menuItems, $sanitationData);
-        $nutritionAnalysis = GeminiResponseParser::parseNutritionResponse($nutritionResponse);
+            if (! empty($aiAssessment['violations'])) {
+                $violations = $this->mergeViolations($violations, $aiAssessment['violations']);
+            }
 
-        // Call Gemini for image analysis if image exists
-        $imageAnalysis = [];
-        if ($this->submission->image_path && file_exists(storage_path('app/' . $this->submission->image_path))) {
-            $imageResponse = $geminiService->analyzeImage(storage_path('app/' . $this->submission->image_path));
-            $imageAnalysis = GeminiResponseParser::parseImageResponse($imageResponse);
+            foreach (['immediate_actions', 'tomorrow_improvements', 'routine_notes'] as $key) {
+                $aiItems = $aiAssessment['corrective_feedback'][$key] ?? [];
+                if (! empty($aiItems)) {
+                    $feedback[$key] = array_values(array_unique(array_merge($feedback[$key] ?? [], $aiItems)));
+                }
+            }
         }
 
-        return [
-            'nutrition' => $nutritionAnalysis,
-            'image' => $imageAnalysis,
-        ];
-    }
-
-    /**
-     * Merge Gemini results with Scoring Engine results
-     */
-    private function mergeResults(array $geminiAnalysis, $scoringResult): array
-    {
-        // Use Gemini scores if available, otherwise use Scoring Engine scores
-        $nutritionScore = !empty($geminiAnalysis['nutrition']['nutrition_score'])
-            ? (int) $geminiAnalysis['nutrition']['nutrition_score']
-            : $scoringResult->nutritionScore;
-
-        $safetyScore = !empty($geminiAnalysis['nutrition']['safety_score'])
-            ? (int) $geminiAnalysis['nutrition']['safety_score']
-            : $scoringResult->safetyScore;
-
-        $sanitationScore = !empty($geminiAnalysis['nutrition']['sanitation_score'])
-            ? (int) $geminiAnalysis['nutrition']['sanitation_score']
-            : $scoringResult->sanitationScore;
-
-        // Recalculate final score with merged values
         $finalScore = (int) round(
-            ($nutritionScore * 0.40) +
-            ($safetyScore * 0.40) +
-            ($sanitationScore * 0.20)
+            ($nutrition * 0.4) + ($safety * 0.4) + ($sanitation * 0.2)
         );
 
-        // Determine status
-        $status = $this->determineStatus($finalScore, $scoringResult->immediateActionRequired);
+        $jedaMenit = NutriGuardPrompts::jedaMenitMasakDistribusi($this->submission);
+        if ($jedaMenit > 240) {
+            $finalScore = min($finalScore, 49);
+            $status = 'BAHAYA';
+            $immediate = true;
+        }
+
+        $hasCritical = collect($violations)->contains(fn ($v) => ($v['severity'] ?? '') === 'CRITICAL');
+        if ($hasCritical || $finalScore < 50) {
+            $status = 'BAHAYA';
+            $immediate = true;
+        } elseif ($finalScore < 75 && $status === 'AMAN') {
+            $status = 'PERHATIAN';
+        }
 
         return [
-            'nutrition_score' => $nutritionScore,
-            'safety_score' => $safetyScore,
-            'sanitation_score' => $sanitationScore,
+            'nutrition_score' => $nutrition,
+            'safety_score' => $safety,
+            'sanitation_score' => $sanitation,
             'final_score' => $finalScore,
             'status' => $status,
-            'immediate_action_required' => $scoringResult->immediateActionRequired || $finalScore < 60,
-            'violations' => $scoringResult->violations,
-            'corrective_feedback' => $scoringResult->correctiveFeedback,
-            'gemini_analysis' => $geminiAnalysis,
+            'immediate_action_required' => $immediate,
+            'violations' => $violations,
+            'corrective_feedback' => $feedback,
+            'nutrition_summary' => $aiAssessment['nutrition_summary'] ?? ($geminiNutrition['nutrition_notes'] ?? ''),
             'raw_response' => json_encode([
-                'gemini' => $geminiAnalysis,
-                'scoring_engine' => $scoringResult->toArray(),
+                'gemini_nutrition' => $geminiNutrition,
+                'gemini_assessment' => $aiAssessment,
+                'scoring_engine' => $engineResult->toArray(),
             ]),
+            'processing_time_ms' => 0,
         ];
     }
 
-    /**
-     * Determine status based on final score
-     */
-    private function determineStatus(int $finalScore, bool $hasHardRuleViolation): string
+    private function mergeViolations(array $engine, array $ai): array
     {
-        if ($hasHardRuleViolation || $finalScore < 60) {
-            return 'BAHAYA';
+        $seen = collect($engine)->pluck('description')->all();
+        foreach ($ai as $v) {
+            $desc = $v['description'] ?? '';
+            if ($desc && ! in_array($desc, $seen, true)) {
+                $engine[] = $v;
+                $seen[] = $desc;
+            }
         }
 
-        if ($finalScore < 75) {
-            return 'PERHATIAN';
-        }
-
-        return 'AMAN';
+        return $engine;
     }
 
-    /**
-     * Save results to database
-     */
     private function saveResults(array $results): void
     {
-        // Create AI Assessment
         $assessment = AiAssessment::create([
             'meal_submission_id' => $this->submission->id,
             'nutrition_score' => $results['nutrition_score'],
@@ -187,25 +170,45 @@ class ProcessMealAnalysis implements ShouldQueue
             'violations_count' => count($results['violations']),
             'immediate_action_required' => $results['immediate_action_required'],
             'raw_response' => $results['raw_response'],
-            'processing_time_ms' => 0, // Can be calculated if needed
+            'processing_time_ms' => $results['processing_time_ms'],
         ]);
 
-        // Save violations
         foreach ($results['violations'] as $violation) {
-            $assessment->violations()->create($violation);
+            $assessment->violations()->create([
+                'dimension' => $violation['dimension'] ?? 'keamanan',
+                'severity' => $violation['severity'] ?? 'MEDIUM',
+                'description' => $violation['description'] ?? '',
+                'corrective_action' => $violation['corrective_action'] ?? '',
+            ]);
         }
 
-        // Save corrective feedback
         $assessment->correctiveFeedback()->create([
             'immediate_actions' => $results['corrective_feedback']['immediate_actions'] ?? [],
             'tomorrow_improvements' => $results['corrective_feedback']['tomorrow_improvements'] ?? [],
             'routine_notes' => $results['corrective_feedback']['routine_notes'] ?? [],
             'generated_at' => Carbon::now(),
         ]);
+    }
 
-        Log::info('Results saved to database', [
-            'assessment_id' => $assessment->id,
-            'violations_count' => count($results['violations']),
-        ]);
+    public static function resolveImagePath(?string $imagePath): ?string
+    {
+        if (! $imagePath) {
+            return null;
+        }
+
+        if (file_exists($imagePath)) {
+            return $imagePath;
+        }
+
+        $public = storage_path('app/public/'.$imagePath);
+        if (file_exists($public)) {
+            return $public;
+        }
+
+        if (Storage::disk('public')->exists($imagePath)) {
+            return Storage::disk('public')->path($imagePath);
+        }
+
+        return null;
     }
 }
