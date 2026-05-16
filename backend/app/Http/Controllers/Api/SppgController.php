@@ -1,9 +1,10 @@
 <?php
 
 namespace App\Http\Controllers\Api;
-use Illuminate\Http\Request;
+
 use App\Http\Controllers\Controller;
 use App\Models\Sppg;
+use Illuminate\Http\Request;
 
 class SppgController extends Controller
 {
@@ -19,11 +20,12 @@ class SppgController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string',
-            'location' => 'required|string',
-            'province' => 'required|string',
+            'name' => 'required|string|max:255',
+            'location' => 'required|string|max:255',
+            'province' => 'required|string|max:100',
             'contact_person' => 'nullable|string',
             'phone' => 'nullable|string',
+            'has_slhs' => 'boolean'
         ]);
 
         $sppg = Sppg::create($validated);

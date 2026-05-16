@@ -18,7 +18,12 @@ class SppgFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'name' => $this->faker->company(),
+            'location' => $this->faker->address(),
+            'province' => $this->faker->state(),
+            'contact_person' => $this->faker->name(),
+            'phone' => $this->faker->phoneNumber(),
+            'has_slhs' => $this->faker->boolean(),
         ];
     }
 }

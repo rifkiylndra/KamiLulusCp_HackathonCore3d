@@ -18,7 +18,9 @@ class MenuItemFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'ingredient_name' => $this->faker->word(),
+            'quantity_gram' => $this->faker->numberBetween(50, 300),
+            'category' => $this->faker->randomElement(['protein', 'carbs', 'vegetables', 'fruits', 'dairy']),
         ];
     }
 }

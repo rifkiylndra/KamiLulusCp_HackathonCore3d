@@ -18,7 +18,11 @@ class SanitationCheckFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'apd_used' => $this->faker->boolean(),
+            'kitchen_cleaned' => $this->faker->boolean(),
+            'storage_type' => $this->faker->randomElement(['freezer', 'kulkas', 'suhu_ruang']),
+            'ingredient_condition' => $this->faker->randomElement(['baik', 'rusak', 'mencurigakan']),
+            'supplier_source' => $this->faker->randomElement(['resmi', 'pasar', 'lainnya']),
         ];
     }
 }

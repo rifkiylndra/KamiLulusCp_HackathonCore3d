@@ -5,7 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMealSubmissionRequest;
 use App\Models\MealSubmission;
-use Illuminate\Http\Request;
+use App\Jobs\ProcessMealAnalysis;
+use Illuminate\Support\Facades\DB;
 
 class MealSubmissionController extends Controller
 {
@@ -13,11 +14,11 @@ class MealSubmissionController extends Controller
     {
         $data = $request->validated();
 
-        \DB::beginTransaction();
+        DB::beginTransaction();
         try {
             $submission = MealSubmission::create([
                 'sppg_id' => $data['sppg_id'],
-                'submitted_by' => $data['submitted_by'] ?? 'Petugas',
+                'submitted_by' => $data['submitted_by'] ?? auth()->user()?->name ?? 'Petugas',
                 'menu_name' => $data['menu_name'],
                 'portion_count' => $data['portion_count'],
                 'cook_start_at' => $data['cook_start_at'],
@@ -27,38 +28,40 @@ class MealSubmissionController extends Controller
                 'status' => 'processing',
             ]);
 
-            // Simpan menu items
-            if (isset($data['ingredients']) && \is_array($data['ingredients'])) {
+            // Simpan ingredients
+            if (!empty($data['ingredients'])) {
                 foreach ($data['ingredients'] as $item) {
                     $submission->menuItems()->create($item);
                 }
             }
 
-            // Simpan sanitation check
-            if (isset($data['sanitation'])) {
+            // Simpan sanitation
+            if (!empty($data['sanitation'])) {
                 $submission->sanitationCheck()->create($data['sanitation']);
             }
 
-            \DB::commit();
+            DB::commit();
+
+            ProcessMealAnalysis::dispatch($submission);
 
             return response()->json([
                 'success' => true,
                 'data' => ['submission_id' => $submission->id],
-                'message' => 'Submission berhasil dibuat. Silakan tunggu hasil analisis AI.'
+                'message' => 'Submission berhasil. AI sedang menganalisis...'
             ], 201);
 
         } catch (\Exception $e) {
-            \DB::rollBack();
+            DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                'message' => 'Gagal menyimpan: ' . $e->getMessage()
             ], 500);
         }
     }
 
     public function index()
     {
-        $submissions = MealSubmission::with('sppg', 'aiAssessment')
+        $submissions = MealSubmission::with(['sppg', 'aiAssessment'])
             ->latest()
             ->paginate(15);
 
@@ -74,7 +77,7 @@ class MealSubmissionController extends Controller
             'sppg', 
             'menuItems', 
             'sanitationCheck', 
-            'aiAssessment.violations', 
+            'aiAssessment.violations',
             'aiAssessment.correctiveFeedback'
         ])->findOrFail($id);
 
@@ -91,6 +94,7 @@ class MealSubmissionController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
+                'id' => $submission->id,
                 'status' => $submission->status,
                 'ai_assessment' => $submission->aiAssessment
             ]
