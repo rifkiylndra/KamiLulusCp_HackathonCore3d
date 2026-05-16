@@ -2,13 +2,10 @@ import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   Sparkles,
-  ShieldAlert,
-  Clock,
+  ShieldAlert, 
   CheckCircle,
   TrendingUp,
   ArrowLeft,
-  Wrench,
-  Leaf,
 } from "lucide-react";
 import NavbarLogin from "../components/layout/NavbarLogin";
 import Footer from "../components/layout/Footer";
