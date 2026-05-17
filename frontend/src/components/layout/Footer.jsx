@@ -1,4 +1,4 @@
-import { Shield,  Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import { FaInstagram } from "react-icons/fa";
 
 function Footer() {
@@ -9,9 +9,11 @@ function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 bg-[#1A8A52] rounded-full flex items-center justify-center">
-                <Shield className="w-3.5 h-3.5 text-white" />
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="NutriGuard Logo" 
+                className="h-7 w-auto object-contain"
+              />
               <span className="font-bold text-lg">NutriGuard</span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed max-w-xs">

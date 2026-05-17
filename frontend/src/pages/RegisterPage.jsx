@@ -73,9 +73,11 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-gradient-to-br from-[#DFF0E8] via-[#EEF7F2] to-[#E8F4F0] flex flex-col items-center justify-center px-4 py-10">
       {/* Logo */}
       <div className="flex items-center gap-2 mb-8">
-        <div className="w-10 h-10 bg-[#0D5C3A] rounded-full flex items-center justify-center">
-          <Shield className="w-6 h-6 text-white" />
-        </div>
+        <img 
+          src="/logo.png" 
+          alt="NutriGuard Logo" 
+          className="h-10 w-auto object-contain"
+        />
         <span className="font-bold text-[#0D3D25] text-xl tracking-tight">
           NutriGuard
         </span>
@@ -83,11 +85,13 @@ export default function RegisterPage() {
 
       {/* Card */}
       <div className="w-full max-w-sm bg-white/80 backdrop-blur-md rounded-3xl shadow-xl shadow-green-900/10 border border-white p-8">
-        {/* Shield icon */}
+        {/* Logo icon in card */}
         <div className="flex justify-center mb-5">
-          <div className="w-14 h-14 bg-[#E6F4EC] rounded-full flex items-center justify-center">
-            <Shield className="w-7 h-7 text-[#1A8A52]" />
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="NutriGuard" 
+            className="h-14 w-auto object-contain"
+          />
         </div>
 
         {/* Title */}

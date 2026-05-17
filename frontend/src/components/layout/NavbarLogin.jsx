@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Shield, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 function NavbarLogin() {
@@ -43,9 +43,11 @@ function NavbarLogin() {
 
         {/* Logo */}
         <Link to="/home" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#0D5C3A] rounded-full flex items-center justify-center">
-            <Shield className="w-4 h-4 text-white" />
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="NutriGuard Logo" 
+            className="h-8 w-auto object-contain"
+          />
 
           <span className="font-bold text-[#0D3D25] text-lg tracking-tight">
             NutriGuard 
