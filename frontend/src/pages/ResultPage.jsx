@@ -4,12 +4,9 @@ import {
   AlertTriangle,
   Sparkles,
   ShieldAlert,
-  Clock,
   CheckCircle,
   TrendingUp,
   ArrowLeft,
-  Wrench,
-  Leaf,
   Loader,
 } from "lucide-react";
 import NavbarLogin from "../components/layout/NavbarLogin";
@@ -37,66 +34,6 @@ function ScoreBar({ label, nilai, bg, critical }) {
           className={`h-full rounded-full transition-all duration-700 ${bg}`}
           style={{ width: `${nilai}%` }}
         />
-      </div>
-    </div>
-  );
-}
-
-// ── Kitchen Visual Placeholder ────────────────────────────────────────────────
-function KitchenVisual() {
-  return (
-    <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-teal-800 to-[#0D3D25] h-44">
-      {/* Grid pattern */}
-      <svg
-        className="absolute inset-0 w-full h-full opacity-10"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <defs>
-          <pattern
-            id="grid"
-            width="32"
-            height="32"
-            patternUnits="userSpaceOnUse"
-          >
-            <path
-              d="M 32 0 L 0 0 0 32"
-              fill="none"
-              stroke="white"
-              strokeWidth="0.5"
-            />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#grid)" />
-      </svg>
-
-      {/* Fake kitchen elements */}
-      <div className="absolute inset-0 flex items-center justify-center gap-6 opacity-30">
-        {[...Array(5)].map((_, i) => (
-          <div
-            key={i}
-            className="flex flex-col items-center gap-2"
-            style={{ transform: `translateY(${i % 2 === 0 ? "8px" : "-8px"})` }}
-          >
-            <div className="w-10 h-14 bg-white/20 rounded-lg" />
-            <div className="w-8 h-2 bg-white/30 rounded" />
-          </div>
-        ))}
-      </div>
-
-      {/* Labels */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-4 py-3">
-        <p className="text-white/60 text-[10px] uppercase tracking-widest font-semibold mb-0.5">
-          Visualisasi Dapur Hub 04
-        </p>
-        <p className="text-white text-sm font-bold">
-          Kondisi Operasional: Stabil (Normal)
-        </p>
-      </div>
-
-      {/* Live dot */}
-      <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/30 backdrop-blur-sm rounded-full px-2.5 py-1">
-        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-        <span className="text-white text-[10px] font-semibold">LIVE</span>
       </div>
     </div>
   );
@@ -448,8 +385,6 @@ export default function ResultPage() {
                   </p>
                 </div>
               )}
-
-              <KitchenVisual />
             </div>
           </div>
 

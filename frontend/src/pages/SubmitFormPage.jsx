@@ -149,7 +149,7 @@ function StepMenu({ data, setData, onPhotoAnalyzed }) {
     setData((p) => ({ ...p, foto: file }));
     stopCamera();
     
-    // Auto-analyze photo for ingredients
+    // Auto-analyze photo for ingredients only (not menu name)
     setAnalyzing(true);
     setAnalysisError("");
     
@@ -158,13 +158,7 @@ function StepMenu({ data, setData, onPhotoAnalyzed }) {
       const analysisResult = await analyzePhotoForIngredients(file);
       console.log('Analysis result:', analysisResult);
       
-      // Auto-fill menu name if detected
-      if (analysisResult.nama_menu) {
-        console.log('Setting menu name:', analysisResult.nama_menu);
-        setData((p) => ({ ...p, namaMenu: analysisResult.nama_menu }));
-      }
-      
-      // Pass analysis result to parent component
+      // Pass analysis result to parent component for ingredients auto-fill
       if (onPhotoAnalyzed) {
         console.log('Calling onPhotoAnalyzed with:', analysisResult);
         onPhotoAnalyzed(analysisResult);
@@ -460,23 +454,8 @@ function StepMenu({ data, setData, onPhotoAnalyzed }) {
             className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 placeholder-gray-400 outline-none focus:border-[#1A8A52] transition-colors"
           />
           
-          {/* AI Auto-fill indicator */}
-          {analyzing && (
-            <div className="mt-2 flex items-center gap-2 text-xs text-[#1A8A52]">
-              <Sparkles className="w-3 h-3 animate-pulse" />
-              <span>AI sedang mendeteksi nama menu...</span>
-            </div>
-          )}
-          
-          {data.namaMenu && !analyzing && (
-            <div className="mt-2 flex items-center gap-2 text-xs text-green-600">
-              <CheckCircle className="w-3 h-3" />
-              <span>Nama menu terdeteksi oleh AI</span>
-            </div>
-          )}
-          
           <p className="text-xs text-gray-400 mt-2">
-            💡 AI akan otomatis mengisi nama menu dari foto. Anda dapat mengeditnya jika perlu.
+            Masukkan nama menu masakan yang akan dinilai
           </p>
         </div>
       </div>

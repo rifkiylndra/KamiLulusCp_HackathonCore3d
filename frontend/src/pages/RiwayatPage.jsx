@@ -104,17 +104,6 @@ export default function RiwayatPage() {
   const [sppgLeaderboard, setSppgLeaderboard] = useState([]);
   const [error, setError] = useState(null);
 
-  // Handle "Lihat Detail" button - show danger submissions info
-  const handleViewDangerDetails = () => {
-    const currentSppg = getCurrentSppg();
-    if (currentSppg?.id) {
-      // Show user-friendly message in Indonesian
-      alert(`⚠️ PERINGATAN BAHAYA\n\nDitemukan ${monthlyStats.bahaya} laporan dengan status BAHAYA yang memerlukan tindakan segera!\n\nSilakan periksa detail setiap laporan dan lakukan tindakan korektif sesuai rekomendasi sistem.`);
-    } else {
-      alert('Silakan login terlebih dahulu untuk melihat detail laporan.');
-    }
-  };
-
   // Apply filters to leaderboard
   const applyFilters = () => {
     setShowFilterModal(false);
@@ -218,25 +207,6 @@ export default function RiwayatPage() {
               className="shrink-0 bg-white text-red-600 text-xs font-bold px-4 py-2 rounded-full hover:bg-red-50 transition-colors whitespace-nowrap"
             >
               Reload Page
-            </button>
-          </div>
-        )}
-
-        {/* ── Emergency Banner ── */}
-        {!loading && monthlyStats.bahaya > 0 && (
-          <div className="bg-red-600 text-white px-6 py-3 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 text-sm font-medium">
-              <AlertTriangle className="w-5 h-5 shrink-0" />
-              <span>
-                <strong>PERINGATAN KRITIS:</strong> {monthlyStats.bahaya} Laporan berada dalam
-                status BAHAYA. Segera lakukan tindakan korektif!
-              </span>
-            </div>
-            <button 
-              onClick={handleViewDangerDetails}
-              className="shrink-0 bg-white text-red-600 text-xs font-bold px-4 py-2 rounded-full hover:bg-red-50 transition-colors whitespace-nowrap"
-            >
-              Lihat Detail
             </button>
           </div>
         )}
